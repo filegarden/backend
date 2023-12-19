@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "api_server",
+    "file_server",
+]
+resolver = "2"
