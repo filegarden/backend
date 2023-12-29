@@ -1,4 +1,67 @@
 [build]
 rustflags = [
+    # Enables performance optimizations specific to the CPU being compiled on.
+    # We don't distribute cross-platform binaries, so this has no downside.
     "-Ctarget-cpu=native",
+
+    # Enforces soundness.
+    "-Dunsafe_code",
+
+    # Enforces documentation.
+    "-Wclippy::allow_attributes_without_reason",
+    "-Wclippy::missing_docs_in_private_items",
+
+    # Enforces panics are explicit and justified.
+    "-Wclippy::arithmethic_side_effects",
+    "-Wclippy::assertions_on_result_states",
+    "-Wclippy::indexing_slicing",
+    "-Wclippy::missing_assert_message",
+    "-Wclippy::panic",
+    "-Wclippy::unwrap_used",
+
+    # Helps future-proofing and extensibility.
+    "-Wkeyword_idents",
+    "-Wmissing_copy_implementations",
+    "-Wmissing_debug_implementations",
+    "-Wclippy::allow_attributes",
+    "-Wclippy::impl_trait_in_params",
+    "-Wclippy::partial_pub_fields",
+    "-Wclippy::rest_pat_in_fully_bound_structs",
+
+    # Helps readability and consistency.
+    "-Wlet_underscore_drop",
+    "-Wnon_ascii_idents",
+    "-Wunreachable_pub",
+    "-Wclippy::clone_on_ref_ptr",
+    "-Wclippy::empty_structs_with_brackets",
+    "-Wclippy::if_then_some_else_none",
+    "-Wclippy::mixed_read_write_in_expression",
+    "-Wclippy::mod_module_files",
+    "-Wclippy::pub_without_shorthand",
+    "-Wclippy::redundant_type_annotations",
+    "-Wclippy::semicolon_inside_block",
+    "-Wclippy::str_to_string",
+    "-Wclippy::string_add",
+    "-Wclippy::string_to_string",
+    "-Wclippy::try_err",
+    "-Wclippy::unseparated_literal_suffix",
+
+    # Catches accidents and bugs.
+    "-Wunused_crate_dependencies",
+    "-Wunused_tuple_struct_fields",
+    "-Wclippy::dbg_macro",
+    "-Wclippy::empty_drop",
+    "-Wclippy::exit",
+    "-Wclippy::float_cmp_const",
+    "-Wclippy::fn_to_numeric_cast_any",
+    "-Wclippy::lossy_float_literal",
+    "-Wclippy::tests_outside_test_module",
+    "-Wclippy::todo",
+    "-Wclippy::unimplemented",
+    "-Wclippy::unnecessary_safety_comment",
+    "-Wclippy::unnecessary_safety_doc",
+    "-Wclippy::unnecessary_self_imports",
+    "-Wclippy::unreachable",
+    "-Wclippy::use_debug",
+    "-Wrustdoc::unescaped_backticks",
 ]
