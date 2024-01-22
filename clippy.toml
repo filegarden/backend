@@ -1,2 +1,3 @@
+avoid-breaking-exported-api = false
 # TODO: Uncomment in Clippy 1.76.
 # check-private-items = true
