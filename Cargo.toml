@@ -10,6 +10,8 @@ codegen-units = 1
 lto = "fat"
 
 [workspace.lints]
+# Last updated for Clippy version: 1.76
+
 # Enforces soundness.
 rust.unsafe_code = "deny"
 
@@ -135,6 +137,7 @@ clippy.empty_drop = "warn"
 clippy.exit = "warn"
 clippy.float_cmp = "warn"
 clippy.fn_to_numeric_cast_any = "warn"
+clippy.infinite_loop = "warn"
 clippy.lossy_float_literal = "warn"
 clippy.mut_mut = "warn"
 clippy.rc_mutex = "warn"
