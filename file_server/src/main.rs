@@ -6,4 +6,6 @@
 //! website's API authenticated by the client's cookies, allowing a page to act on behalf of a user
 //! without their knowledge).
 
-fn main() {}
+fn main() {
+    todo!();
+}
