@@ -14,7 +14,7 @@ use axum::{routing::get, Router};
 use tokio::net::TcpListener;
 
 /// The URL to the website.
-pub const WEBSITE_URL: &str = "https://filegarden.com/";
+pub const WEBSITE_URI: &str = "https://filegarden.com/";
 
 /// The address the server should listen on.
 const LISTENER_ADDR: &str = "127.0.0.1:3001";
