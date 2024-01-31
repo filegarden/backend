@@ -23,8 +23,7 @@ const LISTENER_ADDR: &str = "127.0.0.1:3001";
 async fn main() -> io::Result<()> {
     let app = Router::new()
         .route("/", get(routes::root::get))
-        .route("/:user", get(routes::file::get))
-        .route("/:user/*path", get(routes::file::get));
+        .route("/*path", get(routes::file::get));
 
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
