@@ -16,11 +16,17 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
     let initial_path = initial_uri.path();
     let initial_query = initial_uri.query();
 
-    let (path, query) = normalize_path_and_query(initial_path, initial_query);
+    let mut path = initial_path.trim_end_matches('/');
+    let query = initial_query;
 
-    // TODO: Also normalize the file ID query.
-    // Don't normalize the presence of a file ID query, so that an extra redirect and database query
-    // isn't required when it's omitted.
+    if path.is_empty() {
+        path = "/";
+    }
+
+    // TODO: Also normalize the queried file ID to be the correct file ID with correct URI encoding.
+    // (And note that normalizing other query parameters is unnecessary.) Don't normalize the
+    // presence of a file ID query, so that an extra redirect and database query isn't required when
+    // it's omitted.
 
     if (initial_path, initial_query) != (path, query) {
         // Redirect to a normalized location to reduce how many URLs must be purged from the CDN's
@@ -40,24 +46,6 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
         file_id.unwrap_or("None")
     )
     .into_response()
-}
-
-/// Fixes all the quirks in the syntax of the specified file URI.
-fn normalize_path_and_query<'a>(
-    path: &'a str,
-    query: Option<&'a str>,
-) -> (&'a str, Option<&'a str>) {
-    let mut normalized_path = path.trim_end_matches('/');
-    let normalized_query = query;
-
-    if normalized_path.is_empty() {
-        normalized_path = "/";
-    }
-
-    // TODO: Also normalize URI encoding of `@id` query value. (And note that normalizing other
-    // query parameters is unnecessary.)
-
-    (normalized_path, normalized_query)
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.
