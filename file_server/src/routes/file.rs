@@ -6,39 +6,70 @@ use axum::{
 };
 use axum_macros::debug_handler;
 
+/// The start of a file ID query parameter.
+const FILE_ID_QUERY_PREFIX: &str = "@id=";
+
 /// Route handler for `GET` on routes to files.
 #[debug_handler]
 pub(crate) async fn get(req: Request) -> impl IntoResponse {
-    let uri = req.uri();
+    let initial_uri = req.uri();
+    let initial_path = initial_uri.path();
+    let initial_query = initial_uri.query();
 
-    let path = uri.path();
-    let query_str = match uri.query() {
-        Some(query_str) => format!("?{query_str}"),
-        None => "".to_string(),
-    };
+    let (path, query) = normalize_path_and_query(initial_path, initial_query);
 
-    let normalized_path = normalize_path(path);
+    // TODO: Also normalize the file ID query.
+    // Don't normalize the presence of a file ID query, so that an extra redirect and database query
+    // isn't required when it's omitted.
 
-    // TODO: Also normalize URI encoding and the file ID query.
+    if (initial_path, initial_query) != (path, query) {
+        // Redirect to a normalized location to reduce how many URLs must be purged from the CDN's
+        // cache when a file is changed. It's impossible to purge every possible variation of a URL.
 
-    if path != normalized_path {
-        return Redirect::permanent(&format!("{normalized_path}{query_str}")).into_response();
+        let normalized_uri = concat_path_and_query(path, query);
+
+        return Redirect::permanent(&normalized_uri).into_response();
     }
 
     let (user_identifier, file_path) = parse_file_route_path(path);
 
-    format!("{user_identifier} - {file_path}").into_response()
+    let file_id = get_queried_file_id(query);
+
+    format!(
+        "{user_identifier} - {file_path} - {}",
+        file_id.unwrap_or("None")
+    )
+    .into_response()
 }
 
-/// Fixes all the quirks in the syntax of the specified URI path.
-fn normalize_path(path: &str) -> &str {
-    let mut normalized_path = path;
+/// Fixes all the quirks in the syntax of the specified file URI.
+fn normalize_path_and_query<'a>(
+    path: &'a str,
+    query: Option<&'a str>,
+) -> (&'a str, Option<&'a str>) {
+    let mut normalized_path = path.trim_end_matches('/');
+    let normalized_query = query;
 
-    if normalized_path != "/" {
-        normalized_path = normalized_path.strip_suffix('/').unwrap_or(normalized_path);
+    if normalized_path.is_empty() {
+        normalized_path = "/";
     }
 
-    normalized_path
+    // TODO: Also normalize URI encoding of `@id` query value. (And note that normalizing other
+    // query parameters is unnecessary.)
+
+    (normalized_path, normalized_query)
+}
+
+/// Joins a path and a query into one string, separated by a `?` if there exists a query.
+fn concat_path_and_query(path: &str, query: Option<&str>) -> String {
+    let mut path_and_query = path.to_string();
+
+    if let Some(query) = query {
+        path_and_query += "?";
+        path_and_query += query;
+    }
+
+    path_and_query
 }
 
 /// Extracts a tuple of the user identifier and file path from the path of a file route URI.
@@ -53,4 +84,15 @@ fn parse_file_route_path(path: &str) -> (&str, &str) {
     }
 
     (user_identifier, file_path)
+}
+
+/// Extracts the value of the file ID query parameter, if it exists in the specified URI query.
+fn get_queried_file_id(query: Option<&str>) -> Option<&str> {
+    let Some(query) = query else {
+        return None;
+    };
+
+    query
+        .split('&')
+        .find_map(|param| param.strip_prefix(FILE_ID_QUERY_PREFIX))
 }
