@@ -31,16 +31,11 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
 }
 
 /// Fixes all the quirks in the syntax of the specified URI path.
-fn normalize_path(path: &str) -> String {
-    let mut normalized_path = path.to_string();
-
-    strip_repeat_slashes(&mut normalized_path);
+fn normalize_path(path: &str) -> &str {
+    let mut normalized_path = path;
 
     if normalized_path != "/" {
-        normalized_path = normalized_path
-            .strip_suffix('/')
-            .unwrap_or(&normalized_path)
-            .to_string();
+        normalized_path = normalized_path.strip_suffix('/').unwrap_or(normalized_path);
     }
 
     normalized_path
@@ -58,16 +53,4 @@ fn parse_file_route_path(path: &str) -> (&str, &str) {
     }
 
     (user_identifier, file_path)
-}
-
-/// Replaces each instance of multiple consecutive slashes with a single slash.
-fn strip_repeat_slashes(string: &mut String) {
-    let mut prev_char = char::default();
-
-    string.retain(|char| {
-        let is_repeat = char == '/' && prev_char == '/';
-        prev_char = char;
-
-        !is_repeat
-    });
 }
