@@ -1,5 +1,7 @@
 //! Route handlers for routes to files.
 
+use std::borrow::Cow;
+
 use axum::{
     extract::Request,
     response::{IntoResponse, Redirect},
@@ -49,12 +51,12 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.
-fn concat_path_and_query(path: &str, query: Option<&str>) -> String {
-    let mut path_and_query = path.to_string();
+fn concat_path_and_query<'a>(path: &'a str, query: Option<&'a str>) -> Cow<'a, str> {
+    let mut path_and_query = Cow::from(path);
 
     if let Some(query) = query {
-        path_and_query += "?";
-        path_and_query += query;
+        path_and_query.to_mut().push('?');
+        path_and_query.to_mut().push_str(query);
     }
 
     path_and_query
