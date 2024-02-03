@@ -9,7 +9,7 @@ use axum::{
 use axum_macros::debug_handler;
 
 /// The start of a file ID query parameter.
-const FILE_ID_QUERY_PREFIX: &str = "~id=";
+const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
 /// Route handler for `GET` on routes to files.
 #[debug_handler]
