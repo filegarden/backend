@@ -45,7 +45,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             // Don't panic for errors in release mode, because the above result can error when the
             // client terminates the connection without sending a request.
             if cfg!(debug_assertions) {
-                #[allow(clippy::unwrap_used)] // This is meant to display the error when panicking.
+                #[allow(clippy::unwrap_used)] // This is specifically intended to panic and display
+                // the error.
                 connection_result.unwrap();
             }
         });
