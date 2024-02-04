@@ -10,14 +10,14 @@ use axum::{
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
-use crate::percent_encoding::COMPONENT_IGNORING_SLASH;
+use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, plain_error_response::PlainErrorResponse};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
 /// Route handler for `GET` on routes to files.
 #[debug_handler]
-pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, StatusCode> {
+pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, PlainErrorResponse> {
     let uri = req.uri();
 
     let initial_path = uri.path();
@@ -29,7 +29,7 @@ pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, StatusCode> {
 
     // The above can decode `%00` into a null byte, so disallow null bytes as a defensive measure.
     if path.contains('\x00') {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(StatusCode::BAD_REQUEST.into());
     }
 
     let normalized_encoded_path: Cow<str> =

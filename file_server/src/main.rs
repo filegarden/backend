@@ -7,6 +7,7 @@
 //! act on behalf of a user without their knowledge).
 
 mod percent_encoding;
+mod plain_error_response;
 mod routes;
 
 use std::io;
