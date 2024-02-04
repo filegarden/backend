@@ -37,7 +37,6 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
 
-        // Spawn a tokio task to serve multiple connections concurrently
         tokio::task::spawn(async move {
             let connection_result = server::conn::auto::Builder::new(TokioExecutor::new())
                 .serve_connection(io, service_fn(serve))
