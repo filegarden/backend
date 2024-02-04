@@ -1,27 +1,48 @@
-//! Route handlers for routes to files.
+//! See [`handler`].
 
 use std::borrow::Cow;
 
 use axum::{
+    body::Body,
     extract::Request,
-    http::StatusCode,
-    response::{IntoResponse, Redirect},
+    http::{Method, StatusCode},
+    response::{IntoResponse, Redirect, Response},
 };
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
-use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, plain_error_response::PlainErrorResponse};
+use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, PlainErrorResponse, WEBSITE_URI};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
-/// Route handler for `GET` on routes to files.
+/// The route handler for all routes.
+#[allow(clippy::unused_async)] // Axum route handlers must be async.
 #[debug_handler]
-pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, PlainErrorResponse> {
-    let uri = req.uri();
+pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse> {
+    let method = req.method();
 
+    if method == Method::OPTIONS {
+        let response = Response::builder()
+            .status(StatusCode::NO_CONTENT)
+            // TODO: Always include this header (especially since it's required for status 405).
+            .header("Allow", "OPTIONS, GET, HEAD")
+            .body(Body::empty())
+            .expect("request should be valid");
+
+        return Ok(response);
+    }
+
+    if !(method == Method::GET || method == Method::HEAD) {
+        return Err(StatusCode::METHOD_NOT_ALLOWED.into());
+    }
+
+    let uri = req.uri();
     let initial_path = uri.path();
-    let query = uri.query();
+
+    if initial_path == "/" {
+        return Ok(Redirect::permanent(WEBSITE_URI).into_response());
+    }
 
     let path = percent_decode_str(initial_path)
         .decode_utf8()
@@ -35,6 +56,8 @@ pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, PlainErrorRes
     let normalized_encoded_path: Cow<str> =
         utf8_percent_encode(&path, COMPONENT_IGNORING_SLASH).into();
 
+    let query = uri.query();
+
     if initial_path != normalized_encoded_path {
         // Redirect to the same URI with normalized path encoding. This reduces how many URLs must
         // be purged from the CDN's cache when a file changes. It's impossible to purge every
@@ -46,6 +69,18 @@ pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, PlainErrorRes
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
+
+    let response = Response::builder()
+        // TODO: Send the correct `Content-Length`.
+        .header("Content-Length", 0);
+
+    if method == Method::HEAD {
+        let response = response
+            .body(Body::empty())
+            .expect("request should be valid");
+
+        return Ok(response);
+    }
 
     Ok(format!(
         "{user_identifier} - {file_path} - {}",

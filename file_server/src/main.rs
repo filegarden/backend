@@ -6,13 +6,14 @@
 //! sends a request to the website's API authenticated by the client's cookies, allowing a page to
 //! act on behalf of a user without their knowledge).
 
-mod percent_encoding;
+pub(crate) mod percent_encoding;
 mod plain_error_response;
-mod routes;
+mod request;
 
 use std::io;
 
-use axum::{routing::get, Router};
+use axum::handler::HandlerWithoutStateExt;
+pub(crate) use plain_error_response::PlainErrorResponse;
 use tokio::net::TcpListener;
 
 /// The URL to the website.
@@ -23,17 +24,13 @@ const LISTENER_ADDR: &str = "127.0.0.1:3001";
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let app = Router::new()
-        .route("/", get(routes::root::get))
-        .route("/*path", get(routes::file::get));
-
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
     if cfg!(debug_assertions) {
         println!("Listening on http://{LISTENER_ADDR}");
     }
 
-    axum::serve(listener, app).await?;
+    axum::serve(listener, request::handler.into_make_service()).await?;
 
     Ok(())
 }
