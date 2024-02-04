@@ -7,7 +7,7 @@ use std::{
 
 use http_body_util::Full;
 use hyper::{
-    body::{self, Body},
+    body::{Body, Buf, Incoming},
     Method, Request, Response, StatusCode,
 };
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
@@ -18,12 +18,14 @@ use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, PlainErrorResponse, WEBS
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
 /// The service function to handle all requests.
-pub(crate) async fn serve(req: Request<body::Incoming>) -> Result<Response<impl Body>, Infallible> {
+pub(crate) async fn serve(
+    req: Request<Incoming>,
+) -> Result<Response<impl Body<Data = impl Buf, Error = Infallible>>, Infallible> {
     Ok(handle(&req))
 }
 
 /// The function to handle all requests.
-fn handle(req: &Request<body::Incoming>) -> Response<impl Body> {
+fn handle(req: &Request<Incoming>) -> Response<impl Body<Data = impl Buf, Error = Infallible>> {
     let method = req.method();
 
     if method == Method::OPTIONS {
