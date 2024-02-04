@@ -12,9 +12,13 @@ mod request;
 
 use std::io;
 
-use axum::handler::HandlerWithoutStateExt;
+use axum::{
+    handler::{Handler, HandlerWithoutStateExt},
+    http::{header, HeaderValue},
+};
 pub(crate) use plain_error_response::PlainErrorResponse;
 use tokio::net::TcpListener;
+use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer};
 
 /// The URL to the website.
 pub const WEBSITE_URI: &str = "https://filegarden.com/";
@@ -30,7 +34,15 @@ async fn main() -> io::Result<()> {
         println!("Listening on http://{LISTENER_ADDR}");
     }
 
-    axum::serve(listener, request::handler.into_make_service()).await?;
+    let service = request::handler
+        .layer(CorsLayer::very_permissive())
+        .layer(SetResponseHeaderLayer::overriding(
+            header::ALLOW,
+            HeaderValue::from_static("OPTIONS, GET, HEAD"),
+        ))
+        .into_make_service();
+
+    axum::serve(listener, service).await?;
 
     Ok(())
 }

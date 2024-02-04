@@ -22,17 +22,6 @@ const FILE_ID_QUERY_PREFIX: &str = "_id=";
 pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse> {
     let method = req.method();
 
-    if method == Method::OPTIONS {
-        let response = Response::builder()
-            .status(StatusCode::NO_CONTENT)
-            // TODO: Always include this header (especially since it's required for status 405).
-            .header("Allow", "OPTIONS, GET, HEAD")
-            .body(Body::empty())
-            .expect("request should be valid");
-
-        return Ok(response);
-    }
-
     if !(method == Method::GET || method == Method::HEAD) {
         return Err(StatusCode::METHOD_NOT_ALLOWED.into());
     }
