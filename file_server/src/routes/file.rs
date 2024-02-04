@@ -4,42 +4,68 @@ use std::borrow::Cow;
 
 use axum::{
     extract::Request,
+    http::StatusCode,
     response::{IntoResponse, Redirect},
 };
 use axum_macros::debug_handler;
+use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
+
+/// All ASCII characters in the [component percent-encode
+/// set](https://url.spec.whatwg.org/#component-percent-encode-set).
+///
+/// Using this with [`utf8_percent_encode`] gives identical results to JavaScript's
+/// [`encodeURIComponent`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent).
+const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'_')
+    .remove(b'.')
+    .remove(b'!')
+    .remove(b'~')
+    .remove(b'*')
+    .remove(b'\'')
+    .remove(b'(')
+    .remove(b')');
+
+/// The set of [`COMPONENT`] ASCII characters, but with `/` excluded.
+///
+/// Using this with [`utf8_percent_encode`] gives identical results to JavaScript's
+/// [`encodeURIComponent`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent),
+/// with the exception that `/` characters are left alone rather than percent-encoded.
+const COMPONENT_IGNORING_SLASH: &AsciiSet = &COMPONENT.remove(b'/');
 
 /// Route handler for `GET` on routes to files.
 #[debug_handler]
 pub(crate) async fn get(req: Request) -> impl IntoResponse {
     let initial_uri = req.uri();
     let initial_path = initial_uri.path();
-    let initial_query = initial_uri.query();
+    let query = initial_uri.query();
 
-    let mut path = initial_path.trim_end_matches('/');
-    let query = initial_query;
+    let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
 
-    if path.is_empty() {
-        path = "/";
-    }
+    let normalized_encoded_path: Cow<str> =
+        utf8_percent_encode(&path, COMPONENT_IGNORING_SLASH).into();
 
     // TODO: Also normalize the queried file ID to be the correct file ID with correct URI encoding.
     // (And note that normalizing other query parameters is unnecessary.) Don't normalize the
     // presence of a file ID query, so that an extra redirect and database query isn't required when
     // it's omitted.
 
-    if (initial_path, initial_query) != (path, query) {
-        // Redirect to a normalized location to reduce how many URLs must be purged from the CDN's
-        // cache when a file is changed. It's impossible to purge every possible variation of a URL.
+    if initial_path != normalized_encoded_path {
+        // Redirect to the same URI with normalized path encoding. This reduces how many URLs must
+        // be purged from the CDN's cache when a file changes. It's impossible to purge every
+        // possible variation of encoding for a URL.
 
-        let normalized_uri = concat_path_and_query(path, query);
+        let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
 
         return Redirect::permanent(&normalized_uri).into_response();
     }
 
-    let (user_identifier, file_path) = parse_file_route_path(path);
+    let (user_identifier, file_path) = parse_file_route_path(&path);
 
     let file_id = get_queried_file_id(query);
 
