@@ -1,14 +1,15 @@
-//! See [`handler`].
+//! See [`serve`].
 
-use std::borrow::Cow;
-
-use axum::{
-    body::Body,
-    extract::Request,
-    http::{Method, StatusCode},
-    response::{IntoResponse, Redirect, Response},
+use std::{
+    borrow::{Borrow, Cow},
+    convert::Infallible,
 };
-use axum_macros::debug_handler;
+
+use http_body_util::Full;
+use hyper::{
+    body::{self, Body},
+    Method, Request, Response, StatusCode,
+};
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
 use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, PlainErrorResponse, WEBSITE_URI};
@@ -16,30 +17,46 @@ use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, PlainErrorResponse, WEBS
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
-/// The route handler for all routes.
-#[allow(clippy::unused_async)] // Axum route handlers must be async.
-#[debug_handler]
-pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse> {
+/// The service function to handle all requests.
+pub(crate) async fn serve(req: Request<body::Incoming>) -> Result<Response<impl Body>, Infallible> {
+    Ok(handle(&req))
+}
+
+/// The function to handle all requests.
+fn handle(req: &Request<body::Incoming>) -> Response<impl Body> {
     let method = req.method();
 
+    if method == Method::OPTIONS {
+        return Response::builder()
+            .status(StatusCode::NO_CONTENT)
+            // TODO: Always include this header (especially since it's required for status 405).
+            .header("Allow", "OPTIONS, GET, HEAD")
+            .body(Full::from(""))
+            .expect("request should be valid");
+    }
+
     if !(method == Method::GET || method == Method::HEAD) {
-        return Err(StatusCode::METHOD_NOT_ALLOWED.into());
+        return PlainErrorResponse::from(StatusCode::METHOD_NOT_ALLOWED).into();
     }
 
     let uri = req.uri();
     let initial_path = uri.path();
 
     if initial_path == "/" {
-        return Ok(Redirect::permanent(WEBSITE_URI).into_response());
+        return Response::builder()
+            .status(StatusCode::PERMANENT_REDIRECT)
+            .header("Location", WEBSITE_URI)
+            .body(Full::from(""))
+            .expect("response should be valid");
     }
 
-    let path = percent_decode_str(initial_path)
-        .decode_utf8()
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
+        return PlainErrorResponse::from(StatusCode::BAD_REQUEST).into();
+    };
 
     // The above can decode `%00` into a null byte, so disallow null bytes as a defensive measure.
     if path.contains('\x00') {
-        return Err(StatusCode::BAD_REQUEST.into());
+        return PlainErrorResponse::from(StatusCode::BAD_REQUEST).into();
     }
 
     let normalized_encoded_path: Cow<str> =
@@ -53,29 +70,33 @@ pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse
         // possible variation of encoding for a URL.
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
-        return Ok(Redirect::permanent(&normalized_uri).into_response());
+
+        return Response::builder()
+            .status(StatusCode::PERMANENT_REDIRECT)
+            .header("Location", normalized_uri.borrow() as &str)
+            .body(Full::from(""))
+            .expect("response should be valid");
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
 
-    let response = Response::builder()
-        // TODO: Send the correct `Content-Length`.
-        .header("Content-Length", 0);
+    let response = Response::builder();
+    // TODO: Send the correct `Content-Length`.
+    // .header("Content-Length", 0);
 
     if method == Method::HEAD {
-        let response = response
-            .body(Body::empty())
+        return response
+            .body(Full::from(""))
             .expect("request should be valid");
-
-        return Ok(response);
     }
 
-    Ok(format!(
-        "{user_identifier} - {file_path} - {}",
-        file_id.unwrap_or("None")
-    )
-    .into_response())
+    response
+        .body(Full::from(format!(
+            "{user_identifier} - {file_path} - {}",
+            file_id.unwrap_or("None")
+        )))
+        .expect("request should be valid")
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.

@@ -8,17 +8,16 @@
 
 pub(crate) mod percent_encoding;
 mod plain_error_response;
-mod request;
+mod serve;
 
-use std::io;
+use std::error::Error;
 
-use axum::{
-    handler::{Handler, HandlerWithoutStateExt},
-    http::{header, HeaderValue},
-};
+use hyper::service::service_fn;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server;
 pub(crate) use plain_error_response::PlainErrorResponse;
+use serve::serve;
 use tokio::net::TcpListener;
-use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer};
 
 /// The URL to the website.
 pub const WEBSITE_URI: &str = "https://filegarden.com/";
@@ -27,22 +26,29 @@ pub const WEBSITE_URI: &str = "https://filegarden.com/";
 const LISTENER_ADDR: &str = "127.0.0.1:3001";
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
     if cfg!(debug_assertions) {
         println!("Listening on http://{LISTENER_ADDR}");
     }
 
-    let service = request::handler
-        .layer(CorsLayer::very_permissive())
-        .layer(SetResponseHeaderLayer::overriding(
-            header::ALLOW,
-            HeaderValue::from_static("OPTIONS, GET, HEAD"),
-        ))
-        .into_make_service();
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let io = TokioIo::new(stream);
 
-    axum::serve(listener, service).await?;
+        // Spawn a tokio task to serve multiple connections concurrently
+        tokio::task::spawn(async move {
+            let connection_result = server::conn::auto::Builder::new(TokioExecutor::new())
+                .serve_connection(io, service_fn(serve))
+                .await;
 
-    Ok(())
+            // Don't panic for errors in release mode, because the above result can error when the
+            // client terminates the connection without sending a request.
+            if cfg!(debug_assertions) {
+                #[allow(clippy::unwrap_used)] // This is meant to display the error when panicking.
+                connection_result.unwrap();
+            }
+        });
+    }
 }

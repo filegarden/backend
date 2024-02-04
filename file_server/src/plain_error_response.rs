@@ -1,14 +1,13 @@
 //! See [`PlainErrorResponse`].
 
-use axum::{
-    body::Body,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use http_body_util::Full;
+use hyper::{body::Bytes, Response, StatusCode};
+use thiserror::Error;
 
-/// An error which implements [`IntoResponse`] by generating a `text/plain` response containing the
-/// associated status code and its canonical reason text (e.g. `404 Not Found`).
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// An error which implements `Into<Response<_>>` by generating a `text/plain` response containing
+/// the associated status code and its canonical reason text (e.g. `404 Not Found`).
+#[derive(Error, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[error("{status}")]
 pub(crate) struct PlainErrorResponse {
     /// The [`StatusCode`] to generate the [`Response`] from.
     status: StatusCode,
@@ -27,12 +26,12 @@ impl From<StatusCode> for PlainErrorResponse {
     }
 }
 
-impl IntoResponse for PlainErrorResponse {
-    fn into_response(self) -> Response {
+impl From<PlainErrorResponse> for Response<Full<Bytes>> {
+    fn from(val: PlainErrorResponse) -> Self {
         Response::builder()
-            .status(self.status())
+            .status(val.status())
             .header("Content-Type", "text/plain")
-            .body(Body::from(self.status().to_string()))
+            .body(Full::from(val.status().to_string()))
             .expect("response should be valid")
     }
 }

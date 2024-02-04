@@ -8,8 +8,9 @@ publish = false
 workspace = true
 
 [dependencies]
-axum = "0.7"
-axum-macros = "0.4"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
 percent-encoding = "2"
+thiserror = "1"
 tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.5", features = ["cors", "set-header"] }
