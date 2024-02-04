@@ -56,11 +56,6 @@ pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, StatusCode> {
     let normalized_encoded_path: Cow<str> =
         utf8_percent_encode(&path, COMPONENT_IGNORING_SLASH).into();
 
-    // TODO: Also normalize the queried file ID to be the correct file ID with correct URI encoding.
-    // (And note that normalizing other query parameters is unnecessary.) Don't normalize the
-    // presence of a file ID query, so that an extra redirect and database query isn't required when
-    // it's omitted.
-
     if initial_path != normalized_encoded_path {
         // Redirect to the same URI with normalized path encoding. This reduces how many URLs must
         // be purged from the CDN's cache when a file changes. It's impossible to purge every
