@@ -61,12 +61,10 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
         // possible variation of encoding for a URL.
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
-
         return Redirect::permanent(&normalized_uri).into_response();
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
-
     let file_id = get_queried_file_id(query);
 
     format!(
@@ -92,14 +90,10 @@ fn concat_path_and_query<'a>(path: &'a str, query: Option<&'a str>) -> Cow<'a, s
 fn parse_file_route_path(path: &str) -> (&str, &str) {
     let path = path.strip_prefix('/').expect("path should start with `/`");
 
-    let user_identifier_end = path.find('/').unwrap_or(path.len());
-    let (user_identifier, mut file_path) = path.split_at(user_identifier_end);
-
-    if file_path.is_empty() {
-        file_path = "/";
+    match path.find('/') {
+        Some(slash_index) => path.split_at(slash_index),
+        None => (path, "/"),
     }
-
-    (user_identifier, file_path)
 }
 
 /// Extracts the value of the file ID query parameter, if it exists in the specified URI query.
