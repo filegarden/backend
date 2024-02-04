@@ -8,33 +8,12 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use axum_macros::debug_handler;
-use percent_encoding::{percent_decode_str, utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
+use percent_encoding::{percent_decode_str, utf8_percent_encode};
+
+use crate::percent_encoding::COMPONENT_IGNORING_SLASH;
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
-
-/// All ASCII characters in the [component percent-encode
-/// set](https://url.spec.whatwg.org/#component-percent-encode-set).
-///
-/// Using this with [`utf8_percent_encode`] gives identical results to JavaScript's
-/// [`encodeURIComponent`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent).
-const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
-    .remove(b'-')
-    .remove(b'_')
-    .remove(b'.')
-    .remove(b'!')
-    .remove(b'~')
-    .remove(b'*')
-    .remove(b'\'')
-    .remove(b'(')
-    .remove(b')');
-
-/// The set of [`COMPONENT`] ASCII characters, but with `/` excluded.
-///
-/// Using this with [`utf8_percent_encode`] gives identical results to JavaScript's
-/// [`encodeURIComponent`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent),
-/// with the exception that `/` characters are left alone rather than percent-encoded.
-const COMPONENT_IGNORING_SLASH: &AsciiSet = &COMPONENT.remove(b'/');
 
 /// Route handler for `GET` on routes to files.
 #[debug_handler]

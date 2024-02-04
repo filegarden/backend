@@ -6,6 +6,7 @@
 //! sends a request to the website's API authenticated by the client's cookies, allowing a page to
 //! act on behalf of a user without their knowledge).
 
+mod percent_encoding;
 mod routes;
 
 use std::io;
