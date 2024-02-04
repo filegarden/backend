@@ -38,14 +38,20 @@ const COMPONENT_IGNORING_SLASH: &AsciiSet = &COMPONENT.remove(b'/');
 
 /// Route handler for `GET` on routes to files.
 #[debug_handler]
-pub(crate) async fn get(req: Request) -> impl IntoResponse {
-    let initial_uri = req.uri();
-    let initial_path = initial_uri.path();
-    let query = initial_uri.query();
+pub(crate) async fn get(req: Request) -> Result<impl IntoResponse, StatusCode> {
+    let uri = req.uri();
 
-    let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
+    let initial_path = uri.path();
+    let query = uri.query();
+
+    let path = percent_decode_str(initial_path)
+        .decode_utf8()
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // The above can decode `%00` into a null byte, so disallow null bytes as a defensive measure.
+    if path.contains('\x00') {
+        return Err(StatusCode::BAD_REQUEST);
+    }
 
     let normalized_encoded_path: Cow<str> =
         utf8_percent_encode(&path, COMPONENT_IGNORING_SLASH).into();
@@ -61,17 +67,17 @@ pub(crate) async fn get(req: Request) -> impl IntoResponse {
         // possible variation of encoding for a URL.
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
-        return Redirect::permanent(&normalized_uri).into_response();
+        return Ok(Redirect::permanent(&normalized_uri).into_response());
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
 
-    format!(
+    Ok(format!(
         "{user_identifier} - {file_path} - {}",
         file_id.unwrap_or("None")
     )
-    .into_response()
+    .into_response())
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.
