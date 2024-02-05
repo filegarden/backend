@@ -7,13 +7,11 @@
 //! act on behalf of a user without their knowledge).
 
 pub(crate) mod percent_encoding;
-mod plain_error_response;
 mod service;
 
 use std::io;
 
 use axum::handler::HandlerWithoutStateExt;
-pub(crate) use plain_error_response::PlainErrorResponse;
 use tokio::net::TcpListener;
 
 /// The URL to the website.

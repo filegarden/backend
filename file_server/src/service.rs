@@ -11,7 +11,7 @@ use axum::{
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
-use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, PlainErrorResponse, WEBSITE_URI};
+use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, WEBSITE_URI};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
@@ -19,39 +19,39 @@ const FILE_ID_QUERY_PREFIX: &str = "_id=";
 /// The service function to handle incoming requests.
 #[allow(clippy::unused_async)] // Axum route handlers must be async.
 #[debug_handler]
-pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse> {
+pub(super) async fn handler(req: Request) -> Response {
+    let mut response = Response::builder();
+
     let method = req.method();
 
-    if method == Method::OPTIONS {
-        return Ok(Response::builder()
-            .status(StatusCode::NO_CONTENT)
-            .header("Allow", "OPTIONS, GET, HEAD")
-            .body(Body::empty())
-            .expect("request should be valid"));
-    }
-
     if !(method == Method::GET || method == Method::HEAD) {
-        return Ok(Response::builder()
-            .status(StatusCode::METHOD_NOT_ALLOWED)
-            .header("Allow", "OPTIONS, GET, HEAD")
+        let status = if method == Method::OPTIONS {
+            StatusCode::NO_CONTENT
+        } else {
+            StatusCode::METHOD_NOT_ALLOWED
+        };
+
+        return response
+            .status(status)
+            .header("Allow", "GET, HEAD, OPTIONS")
             .body(Body::empty())
-            .expect("request should be valid"));
+            .expect("response should be valid");
     }
 
     let uri = req.uri();
     let initial_path = uri.path();
 
     if initial_path == "/" {
-        return Ok(Redirect::permanent(WEBSITE_URI).into_response());
+        return Redirect::permanent(WEBSITE_URI).into_response();
     }
 
     let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
-        return Err(StatusCode::BAD_REQUEST.into());
+        return plain_error_response(StatusCode::BAD_REQUEST);
     };
 
     // The above can decode `%00` into a null byte, so disallow null bytes as a defensive measure.
     if path.contains('\x00') {
-        return Err(StatusCode::BAD_REQUEST.into());
+        return plain_error_response(StatusCode::BAD_REQUEST);
     }
 
     let normalized_encoded_path: Cow<str> =
@@ -65,29 +65,36 @@ pub(crate) async fn handler(req: Request) -> Result<Response, PlainErrorResponse
         // possible variation of encoding for a URL.
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
-        return Ok(Redirect::permanent(&normalized_uri).into_response());
+        return Redirect::permanent(&normalized_uri).into_response();
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
 
-    let response = Response::builder()
-        // TODO: Send the correct `Content-Length`.
-        .header("Content-Length", 0);
+    // TODO: Send the correct `Content-Length`.
+    response = response.header("Content-Length", 0);
 
     if method == Method::HEAD {
-        let response = response
+        return response
             .body(Body::empty())
-            .expect("request should be valid");
-
-        return Ok(response);
+            .expect("response should be valid");
     }
 
-    Ok(format!(
+    format!(
         "{user_identifier} - {file_path} - {}",
         file_id.unwrap_or("None")
     )
-    .into_response())
+    .into_response()
+}
+
+/// Generates a `text/plain` response containing the specified status code and its canonical reason
+/// text (e.g. `404 Not Found`).
+fn plain_error_response(status: StatusCode) -> Response {
+    Response::builder()
+        .status(status)
+        .header("Content-Type", "text/plain")
+        .body(Body::from(status.to_string()))
+        .expect("response should be valid")
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.
