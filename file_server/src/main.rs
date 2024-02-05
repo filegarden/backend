@@ -8,15 +8,12 @@
 
 pub(crate) mod percent_encoding;
 mod plain_error_response;
-mod serve;
+mod service;
 
-use std::error::Error;
+use std::io;
 
-use hyper::service::service_fn;
-use hyper_util::rt::{TokioExecutor, TokioIo};
-use hyper_util::server;
+use axum::handler::HandlerWithoutStateExt;
 pub(crate) use plain_error_response::PlainErrorResponse;
-use serve::serve;
 use tokio::net::TcpListener;
 
 /// The URL to the website.
@@ -26,26 +23,14 @@ pub const WEBSITE_URI: &str = "https://filegarden.com/";
 const LISTENER_ADDR: &str = "127.0.0.1:3001";
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
     if cfg!(debug_assertions) {
         println!("Listening on http://{LISTENER_ADDR}");
     }
 
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let io = TokioIo::new(stream);
+    axum::serve(listener, service::handler.into_make_service()).await?;
 
-        tokio::task::spawn(async move {
-            let connection_result = server::conn::auto::Builder::new(TokioExecutor::new())
-                .serve_connection(io, service_fn(serve))
-                .await;
-
-            #[cfg(debug_assertions)]
-            if let Err(err) = connection_result {
-                println!("Connection error: {err:?}");
-            }
-        });
-    }
+    Ok(())
 }
