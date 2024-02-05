@@ -16,13 +16,20 @@ use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, WEBSITE_URI};
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
+/// The [`Content-Security-Policy`](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) header's
+/// value for all requests.
+const CSP: &str =
+    "default-src file.garden linkh.at data: mediastream: blob: 'unsafe-inline' 'unsafe-eval'";
+
 /// The service function to handle incoming requests.
 #[allow(clippy::unused_async)] // Axum route handlers must be async.
 #[debug_handler]
-pub(super) async fn handler(req: Request) -> Response {
-    let mut response = Response::builder();
+pub(super) async fn handler(request: Request) -> Response {
+    let response = Response::builder()
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Content-Security-Policy", CSP);
 
-    let method = req.method();
+    let method = request.method();
 
     if !(method == Method::GET || method == Method::HEAD) {
         let status = if method == Method::OPTIONS {
@@ -38,10 +45,11 @@ pub(super) async fn handler(req: Request) -> Response {
             .expect("response should be valid");
     }
 
-    let uri = req.uri();
+    let uri = request.uri();
     let initial_path = uri.path();
 
     if initial_path == "/" {
+        // TODO: Use (and enforce usage of) the base `response` for all of this function's returns.
         return Redirect::permanent(WEBSITE_URI).into_response();
     }
 
@@ -71,8 +79,10 @@ pub(super) async fn handler(req: Request) -> Response {
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
 
-    // TODO: Send the correct `Content-Length`.
-    response = response.header("Content-Length", 0);
+    // let response = response
+    //     .header("Content-Length", 0)
+    //     .header("Content-Type", "")
+    //     .header("Last-Modified", "");
 
     if method == Method::HEAD {
         return response
@@ -80,11 +90,12 @@ pub(super) async fn handler(req: Request) -> Response {
             .expect("response should be valid");
     }
 
-    format!(
-        "{user_identifier} - {file_path} - {}",
-        file_id.unwrap_or("None")
-    )
-    .into_response()
+    response
+        .body(Body::from(format!(
+            "{user_identifier} - {file_path} - {}",
+            file_id.unwrap_or("None")
+        )))
+        .expect("response should be valid")
 }
 
 /// Generates a `text/plain` response containing the specified status code and its canonical reason
