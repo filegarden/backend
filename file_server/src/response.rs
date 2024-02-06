@@ -2,7 +2,7 @@
 
 use axum::{
     body::Body,
-    http::{self, HeaderName, HeaderValue, StatusCode},
+    http::{self, header::CONTENT_TYPE, HeaderName, HeaderValue, StatusCode},
 };
 
 /// A wrapper for [`axum::response::Response`] with a simpler API.
@@ -33,22 +33,17 @@ impl Response {
         self
     }
 
-    /// Sets a header on the response, panicking if the header is invalid.
+    /// Sets a header on the response, panicking if the header value is invalid.
     ///
     /// # Panics
     ///
-    /// Panics if the header name or value isn't valid. For example, passing a string panics if it
-    /// contains a character that isn't visible ASCII (32-127).
-    pub(crate) fn header_valid<K, V>(&mut self, key: K, value: V) -> &mut Self
+    /// Panics if the header value isn't valid. For example, passing a string panics if it contains
+    /// a character that isn't visible ASCII (32-127).
+    pub(crate) fn header_valid<V>(&mut self, name: HeaderName, value: V) -> &mut Self
     where
-        HeaderName: TryFrom<K>,
-        <HeaderName as TryFrom<K>>::Error: Into<http::Error>,
         HeaderValue: TryFrom<V>,
         <HeaderValue as TryFrom<V>>::Error: Into<http::Error>,
     {
-        let name = <HeaderName as TryFrom<K>>::try_from(key)
-            .map_err(Into::into)
-            .expect("header name should be valid");
         let value = <HeaderValue as TryFrom<V>>::try_from(value)
             .map_err(Into::into)
             .expect("header value should be valid");
@@ -66,8 +61,7 @@ impl Response {
     /// Sets a [`StatusCode`], and sets it along with its canonical reason text (e.g. `404 Not
     /// Found`) as a `text/plain` body on the response.
     pub(crate) fn plain_error(mut self, status: StatusCode) -> Self {
-        self.status(status)
-            .header_valid("Content-Type", "text/plain");
+        self.status(status).header_valid(CONTENT_TYPE, "text/plain");
 
         self.body(status.to_string())
     }

@@ -4,7 +4,10 @@ use std::borrow::{Borrow, Cow};
 
 use axum::{
     extract::Request,
-    http::{Method, StatusCode},
+    http::{
+        header::{ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW, CONTENT_SECURITY_POLICY, LOCATION},
+        Method, StatusCode,
+    },
 };
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
@@ -26,8 +29,8 @@ pub(super) async fn handler(request: Request) -> Response {
     let mut response = Response::new();
 
     response
-        .header_valid("Access-Control-Allow-Origin", "*")
-        .header_valid("Content-Security-Policy", CSP);
+        .header_valid(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .header_valid(CONTENT_SECURITY_POLICY, CSP);
 
     let method = request.method();
 
@@ -40,7 +43,7 @@ pub(super) async fn handler(request: Request) -> Response {
 
         response
             .status(status)
-            .header_valid("Allow", "GET, HEAD, OPTIONS");
+            .header_valid(ALLOW, "GET, HEAD, OPTIONS");
 
         return response;
     }
@@ -51,7 +54,7 @@ pub(super) async fn handler(request: Request) -> Response {
     if initial_path == "/" {
         response
             .status(StatusCode::PERMANENT_REDIRECT)
-            .header_valid("Location", WEBSITE_URI);
+            .header_valid(LOCATION, WEBSITE_URI);
 
         return response;
     }
@@ -79,7 +82,7 @@ pub(super) async fn handler(request: Request) -> Response {
 
         response
             .status(StatusCode::PERMANENT_REDIRECT)
-            .header_valid("Location", normalized_uri.borrow() as &str);
+            .header_valid(LOCATION, normalized_uri.borrow() as &str);
 
         return response;
     }
@@ -87,10 +90,10 @@ pub(super) async fn handler(request: Request) -> Response {
     let (user_identifier, file_path) = parse_file_route_path(&path);
     let file_id = get_queried_file_id(query);
 
-    // let response = response
-    //     .header("Content-Length", 0)
-    //     .header("Content-Type", "")
-    //     .header("Last-Modified", "");
+    // response
+    //     .header_valid(CONTENT_LENGTH, 0)
+    //     .header_valid(CONTENT_TYPE, "")
+    //     .header_valid(LAST_MODIFIED, "");
 
     if method == Method::HEAD {
         return response;
