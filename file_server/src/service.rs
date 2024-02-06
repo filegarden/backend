@@ -17,7 +17,7 @@ use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBS
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
-/// The [`Content-Security-Policy`](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) header's
+/// The [`Content-Security-Policy`](https://developer.mozilla.org/docs/Web/HTTP/CSP) header's
 /// value for all requests.
 const CSP: &str =
     "default-src file.garden linkh.at data: mediastream: blob: 'unsafe-inline' 'unsafe-eval'";
