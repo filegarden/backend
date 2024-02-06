@@ -2,7 +2,11 @@
 
 use axum::{
     body::Body,
-    http::{self, header::CONTENT_TYPE, HeaderName, HeaderValue, StatusCode},
+    http::{
+        self,
+        header::{CONTENT_TYPE, LOCATION},
+        HeaderName, HeaderValue, StatusCode,
+    },
 };
 
 /// A wrapper for [`axum::response::Response`] with a simpler API.
@@ -54,6 +58,20 @@ impl Response {
     /// Sets a [`Body`] on the response.
     pub(crate) fn body<T: Into<Body>>(mut self, body: T) -> Self {
         *self.inner.body_mut() = body.into();
+
+        self
+    }
+
+    /// Sets the response to a [`308 Permanent
+    /// Redirect`](https://developer.mozilla.org/docs/Web/HTTP/Status/308).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the location isn't a valid header value. See "Panics" section of
+    /// [`Response::header_valid`].
+    pub(crate) fn permanent_redirect(mut self, location: &str) -> Self {
+        self.status(StatusCode::PERMANENT_REDIRECT)
+            .header_valid(LOCATION, location);
 
         self
     }

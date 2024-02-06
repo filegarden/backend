@@ -1,11 +1,11 @@
 //! See [`handler`].
 
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 
 use axum::{
     extract::Request,
     http::{
-        header::{ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW, CONTENT_SECURITY_POLICY, LOCATION},
+        header::{ACCESS_CONTROL_ALLOW_ORIGIN, ALLOW, CONTENT_SECURITY_POLICY},
         Method, StatusCode,
     },
 };
@@ -52,11 +52,7 @@ pub(super) async fn handler(request: Request) -> Response {
     let initial_path = uri.path();
 
     if initial_path == "/" {
-        response
-            .status(StatusCode::PERMANENT_REDIRECT)
-            .header_valid(LOCATION, WEBSITE_URI);
-
-        return response;
+        return response.permanent_redirect(WEBSITE_URI);
     }
 
     let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
@@ -80,11 +76,7 @@ pub(super) async fn handler(request: Request) -> Response {
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
 
-        response
-            .status(StatusCode::PERMANENT_REDIRECT)
-            .header_valid(LOCATION, normalized_uri.borrow() as &str);
-
-        return response;
+        return response.permanent_redirect(&normalized_uri);
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
