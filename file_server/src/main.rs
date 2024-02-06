@@ -7,6 +7,7 @@
 //! act on behalf of a user without their knowledge).
 
 pub(crate) mod percent_encoding;
+pub(crate) mod response;
 mod service;
 
 use std::io;

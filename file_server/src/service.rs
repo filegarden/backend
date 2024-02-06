@@ -1,17 +1,15 @@
 //! See [`handler`].
 
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 
 use axum::{
-    body::Body,
     extract::Request,
     http::{Method, StatusCode},
-    response::{IntoResponse, Redirect, Response},
 };
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
-use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, WEBSITE_URI};
+use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBSITE_URI};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
@@ -25,9 +23,11 @@ const CSP: &str =
 #[allow(clippy::unused_async)] // Axum route handlers must be async.
 #[debug_handler]
 pub(super) async fn handler(request: Request) -> Response {
-    let response = Response::builder()
-        .header("Access-Control-Allow-Origin", "*")
-        .header("Content-Security-Policy", CSP);
+    let mut response = Response::new();
+
+    response
+        .header_valid("Access-Control-Allow-Origin", "*")
+        .header_valid("Content-Security-Policy", CSP);
 
     let method = request.method();
 
@@ -38,28 +38,31 @@ pub(super) async fn handler(request: Request) -> Response {
             StatusCode::METHOD_NOT_ALLOWED
         };
 
-        return response
+        response
             .status(status)
-            .header("Allow", "GET, HEAD, OPTIONS")
-            .body(Body::empty())
-            .expect("response should be valid");
+            .header_valid("Allow", "GET, HEAD, OPTIONS");
+
+        return response;
     }
 
     let uri = request.uri();
     let initial_path = uri.path();
 
     if initial_path == "/" {
-        // TODO: Use (and enforce usage of) the base `response` for all of this function's returns.
-        return Redirect::permanent(WEBSITE_URI).into_response();
+        response
+            .status(StatusCode::PERMANENT_REDIRECT)
+            .header_valid("Location", WEBSITE_URI);
+
+        return response;
     }
 
     let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
-        return plain_error_response(StatusCode::BAD_REQUEST);
+        return response.plain_error(StatusCode::BAD_REQUEST);
     };
 
     // The above can decode `%00` into a null byte, so disallow null bytes as a defensive measure.
     if path.contains('\x00') {
-        return plain_error_response(StatusCode::BAD_REQUEST);
+        return response.plain_error(StatusCode::BAD_REQUEST);
     }
 
     let normalized_encoded_path: Cow<str> =
@@ -73,7 +76,12 @@ pub(super) async fn handler(request: Request) -> Response {
         // possible variation of encoding for a URL.
 
         let normalized_uri = concat_path_and_query(&normalized_encoded_path, query);
-        return Redirect::permanent(&normalized_uri).into_response();
+
+        response
+            .status(StatusCode::PERMANENT_REDIRECT)
+            .header_valid("Location", normalized_uri.borrow() as &str);
+
+        return response;
     }
 
     let (user_identifier, file_path) = parse_file_route_path(&path);
@@ -85,27 +93,13 @@ pub(super) async fn handler(request: Request) -> Response {
     //     .header("Last-Modified", "");
 
     if method == Method::HEAD {
-        return response
-            .body(Body::empty())
-            .expect("response should be valid");
+        return response;
     }
 
-    response
-        .body(Body::from(format!(
-            "{user_identifier} - {file_path} - {}",
-            file_id.unwrap_or("None")
-        )))
-        .expect("response should be valid")
-}
-
-/// Generates a `text/plain` response containing the specified status code and its canonical reason
-/// text (e.g. `404 Not Found`).
-fn plain_error_response(status: StatusCode) -> Response {
-    Response::builder()
-        .status(status)
-        .header("Content-Type", "text/plain")
-        .body(Body::from(status.to_string()))
-        .expect("response should be valid")
+    response.body(format!(
+        "{user_identifier} - {file_path} - {}",
+        file_id.unwrap_or("None")
+    ))
 }
 
 /// Joins a path and a query into one string, separated by a `?` if there exists a query.
