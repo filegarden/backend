@@ -10,6 +10,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
 
   file_server:
     restart: on-failure
@@ -21,6 +24,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
 
   db:
     image: postgres:16-alpine
