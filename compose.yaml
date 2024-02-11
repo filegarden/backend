@@ -4,7 +4,8 @@ services:
     restart: on-failure
     build:
       args:
-        BIN_NAME: api_server
+        PACKAGE: api_server
+        PROFILE: dev
     ports:
       - 3000:3000/tcp
     depends_on:
@@ -18,7 +19,8 @@ services:
     restart: on-failure
     build:
       args:
-        BIN_NAME: file_server
+        PACKAGE: file_server
+        PROFILE: dev
     ports:
       - 3001:3001/tcp
     depends_on:

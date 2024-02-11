@@ -4,13 +4,13 @@ services:
     restart: always
     build:
       args:
-        CARGO_ARGS: --release
+        PROFILE: release
 
   file_server:
     restart: always
     build:
       args:
-        CARGO_ARGS: --release
+        PROFILE: release
 
   db:
     restart: always

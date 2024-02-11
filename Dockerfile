@@ -10,8 +10,8 @@ RUN apk add --no-cache clang lld musl-dev git file
 
 COPY . .
 
-ARG BIN_NAME
-ARG CARGO_ARGS=
+ARG PACKAGE=
+ARG PROFILE=
 
 # Persist directories with downloaded or compiled dependencies between builds so
 # every build doesn't have to redownload and recompile all dependencies. Then
@@ -22,8 +22,12 @@ RUN --mount=type=cache,target=target \
     --mount=type=cache,target=/usr/local/cargo/registry \
     <<EOF
 set -e
-cargo build --package $BIN_NAME --locked $CARGO_ARGS
-cp ./target/release/$BIN_NAME /bin/app
+cargo build --locked --package $PACKAGE --profile $PROFILE
+if [ "$PROFILE" = "release" ]; then
+    cp ./target/release/$PACKAGE /bin/app
+else
+    cp ./target/debug/$PACKAGE /bin/app
+fi
 EOF
 
 # The final image will be a lean Alpine instance with only the final binary from
