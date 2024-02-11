@@ -19,7 +19,7 @@ use tokio::net::TcpListener;
 pub const WEBSITE_URI: &str = "https://filegarden.com/";
 
 /// The address the server should listen on.
-const LISTENER_ADDR: &str = "127.0.0.1:3001";
+const LISTENER_ADDR: &str = "0.0.0.0:3001";
 
 #[tokio::main]
 async fn main() -> io::Result<()> {

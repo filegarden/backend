@@ -1,0 +1,13 @@
+services:
+
+  file_server:
+    build:
+      args:
+        BIN_NAME: file_server
+    restart: on-failure
+
+  api_server:
+    build:
+      args:
+        BIN_NAME: api_server
+    restart: on-failure
