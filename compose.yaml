@@ -1,19 +1,23 @@
 services:
 
-  file_server:
+  api_server:
+    restart: on-failure
     build:
       args:
-        BIN_NAME: file_server
-    restart: on-failure
+        BIN_NAME: api_server
+    ports:
+      - 3000:3000/tcp
     depends_on:
       db:
         condition: service_healthy
 
-  api_server:
+  file_server:
+    restart: on-failure
     build:
       args:
-        BIN_NAME: api_server
-    restart: on-failure
+        BIN_NAME: file_server
+    ports:
+      - 3001:3001/tcp
     depends_on:
       db:
         condition: service_healthy
@@ -22,14 +26,14 @@ services:
     image: postgres:16-alpine
     restart: on-failure
     user: postgres
+    expose:
+      - 5432
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
     secrets:
       - db-password
-    expose:
-      - 5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s

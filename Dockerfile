@@ -42,6 +42,4 @@ USER app
 
 COPY --from=build /bin/app /bin/app
 
-EXPOSE 3001
-
 ENTRYPOINT ["/bin/app"]
