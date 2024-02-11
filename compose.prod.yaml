@@ -1,0 +1,16 @@
+services:
+
+  api_server:
+    restart: always
+    build:
+      args:
+        CARGO_ARGS: --release
+
+  file_server:
+    restart: always
+    build:
+      args:
+        CARGO_ARGS: --release
+
+  db:
+    restart: always

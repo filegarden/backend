@@ -4,5 +4,6 @@
 **/.git
 **/.gitignore
 **/compose.yaml
+**/compose.*.yaml
 **/Dockerfile*
 /target

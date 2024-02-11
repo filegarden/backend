@@ -11,6 +11,7 @@ RUN apk add --no-cache clang lld musl-dev git file
 COPY . .
 
 ARG BIN_NAME
+ARG CARGO_ARGS=
 
 # Persist directories with downloaded or compiled dependencies between builds so
 # every build doesn't have to redownload and recompile all dependencies. Then
@@ -21,7 +22,7 @@ RUN --mount=type=cache,target=target \
     --mount=type=cache,target=/usr/local/cargo/registry \
     <<EOF
 set -e
-cargo build --locked --release --package $BIN_NAME
+cargo build --package $BIN_NAME --locked $CARGO_ARGS
 cp ./target/release/$BIN_NAME /bin/app
 EOF
 
