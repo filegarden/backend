@@ -25,10 +25,6 @@ const LISTENER_ADDR: &str = "0.0.0.0:3001";
 async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
-    if cfg!(debug_assertions) {
-        println!("Listening on http://{LISTENER_ADDR}");
-    }
-
     axum::serve(listener, service::handler.into_make_service()).await?;
 
     Ok(())
