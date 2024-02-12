@@ -1,0 +1,16 @@
+services:
+
+  api_server:
+    restart: always
+    build:
+      args:
+        PROFILE: release
+
+  file_server:
+    restart: always
+    build:
+      args:
+        PROFILE: release
+
+  db:
+    restart: always
