@@ -1,8 +1,4 @@
-**/.dockerignore
-**/.DS_Store
-**/.env
-**/.git
-**/.gitignore
+**/.*
 **/compose.yaml
 **/compose.*.yaml
 **/Dockerfile*
