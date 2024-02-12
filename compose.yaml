@@ -1,41 +1,10 @@
 services:
-
-  api_server:
-    restart: on-failure
-    build:
-      args:
-        PACKAGE: api_server
-        PROFILE: dev
-    ports:
-      - 3000:3000/tcp
-    depends_on:
-      db:
-        condition: service_healthy
-    develop:
-      watch:
-        - action: rebuild
-
-  file_server:
-    restart: on-failure
-    build:
-      args:
-        PACKAGE: file_server
-        PROFILE: dev
-    ports:
-      - 3001:3001/tcp
-    depends_on:
-      db:
-        condition: service_healthy
-    develop:
-      watch:
-        - action: rebuild
-
   db:
     image: postgres:16-alpine
-    restart: on-failure
+    restart: always
     user: postgres
-    expose:
-      - 5432
+    ports:
+      - 127.0.0.1:5432:5432
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
