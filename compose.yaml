@@ -39,9 +39,9 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+      - POSTGRES_PASSWORD_FILE=/run/secrets/POSTGRES_PASSWORD
     secrets:
-      - db-password
+      - POSTGRES_PASSWORD
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
@@ -52,5 +52,5 @@ volumes:
   db-data:
 
 secrets:
-  db-password:
-    environment: DB_PASSWORD
+  POSTGRES_PASSWORD:
+    environment: POSTGRES_PASSWORD
