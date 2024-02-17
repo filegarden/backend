@@ -1,5 +1,6 @@
 **/.*
 **/compose.yaml
 **/compose.*.yaml
-**/Dockerfile*
+**/Dockerfile
+**/Dockerfile.*
 /target
