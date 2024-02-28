@@ -6,7 +6,7 @@ services:
       args:
         PACKAGE: api_server
     ports:
-      - 3000:3000
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -20,7 +20,7 @@ services:
       args:
         PACKAGE: file_server
     ports:
-      - 3001:3001
+      - "3001:3001"
     depends_on:
       db:
         condition: service_healthy
@@ -33,7 +33,7 @@ services:
     restart: always
     user: postgres
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
