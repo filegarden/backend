@@ -33,13 +33,14 @@ FROM alpine AS final
 RUN adduser \
     --disabled-password \
     --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
+    --home /nonexistent \
+    --shell /sbin/nologin \
     --no-create-home \
-    --uid "10001" \
+    --uid 10001 \
     app
+
 USER app
 
 COPY --from=build /bin/app /bin/app
 
-ENTRYPOINT ["/bin/app"]
+ENTRYPOINT [ "/bin/app" ]
