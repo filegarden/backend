@@ -19,11 +19,11 @@ ARG PACKAGE
 RUN --mount=type=cache,target=target \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry \
-    <<EOF
+    <<END
 set -eu
-cargo build --locked --release --package $PACKAGE
-cp ./target/release/$PACKAGE /bin/app
-EOF
+cargo build --locked --release --package "$PACKAGE"
+cp "./target/release/$PACKAGE" /bin/app
+END
 
 # The final image will be a lean Alpine instance with only the final binary from
 # the above build image copied into it.
