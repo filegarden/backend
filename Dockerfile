@@ -5,7 +5,7 @@ FROM rust:1.75.0-alpine AS build
 
 WORKDIR /app
 
-# Install needed build dependencies (since Alpine doesn't come with much).
+# Install dependencies needed for building the package.
 RUN apk add --no-cache clang lld musl-dev git file
 
 COPY . .
