@@ -121,11 +121,7 @@ fn parse_file_route_path(path: &str) -> (&str, &str) {
 
 /// Extracts the value of the file ID query parameter, if it exists in the specified URI query.
 fn get_queried_file_id(query: Option<&str>) -> Option<&str> {
-    let Some(query) = query else {
-        return None;
-    };
-
-    query
+    query?
         .split('&')
         .find_map(|param| param.strip_prefix(FILE_ID_QUERY_PREFIX))
 }
