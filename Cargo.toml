@@ -10,7 +10,7 @@ codegen-units = 1
 lto = "fat"
 
 [workspace.lints]
-# Last updated for Clippy version: 1.76
+# Last updated for Clippy version: 1.78
 
 # Enforces soundness.
 rust.unsafe_code = "deny"
@@ -31,7 +31,7 @@ clippy.panic = "warn"
 clippy.unchecked_duration_subtraction = "warn"
 clippy.unwrap_used = "warn"
 
-# Helps performance.
+# Helps performance and memory usage.
 clippy.trivially_copy_pass_by_ref = "warn"
 clippy.unnecessary_box_returns = "warn"
 clippy.unused_async = "warn"
@@ -83,6 +83,7 @@ clippy.iter_filter_is_ok = "warn"
 clippy.iter_filter_is_some = "warn"
 clippy.iter_not_returning_iterator = "warn"
 clippy.manual_assert = "warn"
+clippy.manual_c_str_literals = "warn"
 clippy.manual_clamp = "warn"
 clippy.manual_instant_elapsed = "warn"
 clippy.manual_is_variant_and = "warn"
