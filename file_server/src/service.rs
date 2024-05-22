@@ -79,8 +79,21 @@ pub(super) async fn handler(request: Request) -> Response {
         return response.permanent_redirect(&normalized_uri);
     }
 
-    let (user_identifier, file_path) = parse_file_route_path(&path);
-    let file_id = get_queried_file_id(query);
+    let (user_identifier, file_path) = {
+        let path = path.strip_prefix('/').expect("path should start with `/`");
+
+        match path.find('/') {
+            Some(slash_index) => path.split_at(slash_index),
+            None => (path, "/"),
+        }
+    };
+
+    let file_id = match query {
+        Some(query) => query
+            .split('&')
+            .find_map(|param| param.strip_prefix(FILE_ID_QUERY_PREFIX)),
+        None => None,
+    };
 
     // response
     //     .header_valid(CONTENT_LENGTH, 0)
@@ -107,21 +120,4 @@ fn concat_path_and_query<'a>(path: &'a str, query: Option<&'a str>) -> Cow<'a, s
     }
 
     path_and_query
-}
-
-/// Extracts a tuple of the user identifier and file path from the path of a file route URI.
-fn parse_file_route_path(path: &str) -> (&str, &str) {
-    let path = path.strip_prefix('/').expect("path should start with `/`");
-
-    match path.find('/') {
-        Some(slash_index) => path.split_at(slash_index),
-        None => (path, "/"),
-    }
-}
-
-/// Extracts the value of the file ID query parameter, if it exists in the specified URI query.
-fn get_queried_file_id(query: Option<&str>) -> Option<&str> {
-    query?
-        .split('&')
-        .find_map(|param| param.strip_prefix(FILE_ID_QUERY_PREFIX))
 }
