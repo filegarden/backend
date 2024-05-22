@@ -8,7 +8,11 @@ publish = false
 workspace = true
 
 [dependencies]
+anyhow = "1"
 axum = "0.7"
 axum-macros = "0.4"
+dotenvy = "0.15"
+once_cell = "1"
 percent-encoding = "2"
+sqlx = { version = "0.7", features = ["macros", "runtime-tokio", "postgres"] }
 tokio = { version = "1", features = ["full"] }

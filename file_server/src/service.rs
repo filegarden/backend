@@ -52,7 +52,7 @@ pub(super) async fn handler(request: Request) -> Response {
     let encoded_path = uri.path();
 
     if encoded_path == "/" {
-        return response.permanent_redirect(WEBSITE_URI);
+        return response.permanent_redirect(&WEBSITE_URI);
     }
 
     let Ok(path) = percent_decode_str(encoded_path).decode_utf8() else {

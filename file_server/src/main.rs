@@ -10,23 +10,58 @@ pub(crate) mod percent_encoding;
 pub(crate) mod response;
 mod service;
 
-use std::io;
+use std::sync::OnceLock;
 
 use axum::handler::HandlerWithoutStateExt;
+use once_cell::sync::Lazy;
+use sqlx::postgres::{PgConnectOptions, Postgres};
+use sqlx::Pool;
 use tokio::net::TcpListener;
 
 /// The URL to the website.
-pub const WEBSITE_URI: &str = "https://filegarden.com/";
+pub static WEBSITE_URI: Lazy<String> = Lazy::new(|| {
+    dotenvy::var("WEBSITE_URI").expect("environment variable `WEBSITE_URL` should be set")
+});
 
-/// The address the server should listen on.
-const LISTENER_ADDR: &str = "[::]:3001";
+/// The SQLx database pool.
+static DB_POOL: OnceLock<Pool<Postgres>> = OnceLock::new();
+
+/// Gets the SQLx database pool.
+///
+/// # Panics
+///
+/// Panics if called before the database pool is initialized by [`main`].
+pub fn db_pool() -> &'static Pool<Postgres> {
+    DB_POOL
+        .get()
+        .expect("database pool should be initialized before use")
+}
 
 /// # Errors
 ///
 /// See implementation.
 #[tokio::main]
-async fn main() -> io::Result<()> {
-    let listener = TcpListener::bind(LISTENER_ADDR).await?;
+async fn main() -> anyhow::Result<()> {
+    let addr = dotenvy::var("FILE_SERVER_ADDR")?;
+    let db_url = dotenvy::var("POSTGRES_URL")?;
+    let db_password = dotenvy::var("POSTGRES_PASSWORD")?;
+
+    println!("Connecting to database...");
+
+    let db_options = db_url.parse::<PgConnectOptions>()?.password(&db_password);
+    DB_POOL
+        .set(Pool::<Postgres>::connect_with(db_options).await?)
+        .expect("`DB_POOL` shouldn't already be set");
+
+    println!("Migrating database...");
+
+    sqlx::migrate!("../migrations").run(db_pool()).await?;
+
+    println!("Listening to {addr}...");
+
+    let listener = TcpListener::bind(addr).await?;
+
+    println!("Ready!");
 
     axum::serve(listener, service::handler.into_make_service()).await?;
 
