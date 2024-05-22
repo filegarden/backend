@@ -1,5 +1,4 @@
 services:
-
   api_server:
     restart: always
     build:
