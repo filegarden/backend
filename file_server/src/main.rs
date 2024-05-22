@@ -23,7 +23,7 @@ const LISTENER_ADDR: &str = "[::]:3001";
 
 /// # Errors
 ///
-/// Returns an error if the TCP listener can't bind to the address.
+/// See implementation.
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
