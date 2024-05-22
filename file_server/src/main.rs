@@ -21,10 +21,10 @@ pub const WEBSITE_URI: &str = "https://filegarden.com/";
 /// The address the server should listen on.
 const LISTENER_ADDR: &str = "[::]:3001";
 
-#[tokio::main]
 /// # Errors
 ///
 /// Returns an error if the TCP listener can't bind to the address.
+#[tokio::main]
 async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
