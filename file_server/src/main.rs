@@ -22,6 +22,9 @@ pub const WEBSITE_URI: &str = "https://filegarden.com/";
 const LISTENER_ADDR: &str = "0.0.0.0:3001";
 
 #[tokio::main]
+/// # Errors
+///
+/// Returns an error if the TCP listener can't bind to the address.
 async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(LISTENER_ADDR).await?;
 
