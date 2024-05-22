@@ -49,13 +49,13 @@ pub(super) async fn handler(request: Request) -> Response {
     }
 
     let uri = request.uri();
-    let initial_path = uri.path();
+    let encoded_path = uri.path();
 
-    if initial_path == "/" {
+    if encoded_path == "/" {
         return response.permanent_redirect(WEBSITE_URI);
     }
 
-    let Ok(path) = percent_decode_str(initial_path).decode_utf8() else {
+    let Ok(path) = percent_decode_str(encoded_path).decode_utf8() else {
         return response.plain_error(StatusCode::BAD_REQUEST);
     };
 
@@ -69,7 +69,7 @@ pub(super) async fn handler(request: Request) -> Response {
 
     let query = uri.query();
 
-    if initial_path != normalized_encoded_path {
+    if encoded_path != normalized_encoded_path {
         // Redirect to the same URI with normalized path encoding. This reduces how many URLs must
         // be purged from the CDN's cache when a file changes. It's impossible to purge every
         // possible variation of encoding for a URL.
