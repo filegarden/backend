@@ -14,7 +14,7 @@ use std::sync::OnceLock;
 
 use axum::handler::HandlerWithoutStateExt;
 use once_cell::sync::Lazy;
-use sqlx::postgres::{PgConnectOptions, Postgres};
+use sqlx::postgres::Postgres;
 use sqlx::Pool;
 use tokio::net::TcpListener;
 
@@ -43,14 +43,12 @@ pub fn db_pool() -> &'static Pool<Postgres> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let addr = dotenvy::var("FILE_SERVER_ADDR")?;
-    let db_url = dotenvy::var("POSTGRES_URL")?;
-    let db_password = dotenvy::var("POSTGRES_PASSWORD")?;
+    let db_url = dotenvy::var("DATABASE_URL")?;
 
     println!("Connecting to database...");
 
-    let db_options = db_url.parse::<PgConnectOptions>()?.password(&db_password);
     DB_POOL
-        .set(Pool::<Postgres>::connect_with(db_options).await?)
+        .set(Pool::<Postgres>::connect(&db_url).await?)
         .expect("`DB_POOL` shouldn't already be set");
 
     println!("Migrating database...");
