@@ -19,7 +19,6 @@ rust.unsafe_code = "deny"
 clippy.allow_attributes_without_reason = "warn"
 clippy.missing_docs_in_private_items = "warn"
 clippy.missing_errors_doc = "warn"
-clippy.missing_panics_doc = "warn"
 rust.missing_docs = "warn"
 
 # Enforces panics are explicit and justified.
