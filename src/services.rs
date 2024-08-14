@@ -1,8 +1,8 @@
 //! All services and their request handlers.
 
-pub(crate) mod api;
-pub(crate) mod content;
-pub(crate) mod website;
+mod api;
+mod content;
+mod website;
 
 use axum::{
     extract::Request,
