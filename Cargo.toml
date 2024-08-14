@@ -19,7 +19,7 @@ sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres"] }
 tokio = { version = "1", features = ["full"] }
 
 [lints]
-# Last updated for Clippy version: 1.78
+# Last updated for Clippy version: 1.80
 
 # Enforces soundness.
 rust.unsafe_code = "deny"
@@ -61,7 +61,6 @@ clippy.ref_option_ref = "warn"
 clippy.rest_pat_in_fully_bound_structs = "warn"
 clippy.semicolon_if_nothing_returned = "warn"
 clippy.should_panic_without_expect = "warn"
-rust.keyword_idents = "warn"
 rust.missing_debug_implementations = "warn"
 
 # Helps readability, clarity, and consistency.
