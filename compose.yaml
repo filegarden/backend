@@ -1,25 +1,9 @@
 services:
-  api_server:
+  server:
     restart: always
     build:
       args:
-        PACKAGE: api_server
-    ports:
-      - "3000:3000"
-    env_file:
-      - path: ./.env
-    depends_on:
-      db:
-        condition: service_healthy
-    develop:
-      watch:
-        - action: rebuild
-
-  file_server:
-    restart: always
-    build:
-      args:
-        PACKAGE: file_server
+        PACKAGE: backend
     ports:
       - "3001:3001"
     env_file:

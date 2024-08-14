@@ -1,15 +1,24 @@
-[workspace]
-members = [
-    "api_server",
-    "file_server",
-]
-resolver = "2"
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+publish = false
 
 [profile.release]
 codegen-units = 1
 lto = "fat"
 
-[workspace.lints]
+[dependencies]
+anyhow = "1"
+axum = "0.7"
+axum-macros = "0.4"
+dotenvy = "0.15"
+once_cell = "1"
+percent-encoding = "2"
+sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres"] }
+tokio = { version = "1", features = ["full"] }
+
+[lints]
 # Last updated for Clippy version: 1.78
 
 # Enforces soundness.

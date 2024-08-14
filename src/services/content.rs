@@ -1,4 +1,4 @@
-//! See [`handler`].
+//! A web server for user-uploaded content. File Garden exposes this through `https://file.garden/`.
 
 use std::borrow::Cow;
 
@@ -12,17 +12,12 @@ use axum::{
 use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
-use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBSITE_URI};
+use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBSITE_ORIGIN};
 
 /// The start of a file ID query parameter.
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
-/// The [`Content-Security-Policy`](https://developer.mozilla.org/docs/Web/HTTP/CSP) header's
-/// value for all requests.
-const CSP: &str =
-    "default-src file.garden linkh.at data: mediastream: blob: 'unsafe-inline' 'unsafe-eval'";
-
-/// The service function to handle incoming requests.
+/// The service function to handle incoming requests for user-uploaded content.
 #[allow(clippy::unused_async)] // Axum route handlers must be async.
 #[debug_handler]
 pub(super) async fn handler(request: Request) -> Response {
@@ -30,7 +25,10 @@ pub(super) async fn handler(request: Request) -> Response {
 
     response
         .header_valid(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        .header_valid(CONTENT_SECURITY_POLICY, CSP);
+        .header_valid(
+            CONTENT_SECURITY_POLICY,
+            "default-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: mediastream:",
+        );
 
     let method = request.method();
 
@@ -52,7 +50,7 @@ pub(super) async fn handler(request: Request) -> Response {
     let encoded_path = uri.path();
 
     if encoded_path == "/" {
-        return response.permanent_redirect(&WEBSITE_URI);
+        return response.permanent_redirect(format!("{}/", *WEBSITE_ORIGIN).as_str());
     }
 
     let Ok(path) = percent_decode_str(encoded_path).decode_utf8() else {
