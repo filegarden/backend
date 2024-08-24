@@ -43,8 +43,8 @@ CREATE TABLE files (
     parent_name_path text[] NOT NULL,
     shared boolean NOT NULL DEFAULT FALSE,
     parts integer NOT NULL DEFAULT 1,
-    size integer NOT NULL,
-    encoded_size integer NOT NULL,
+    size bigint NOT NULL,
+    encoded_size bigint NOT NULL,
     encoding encoding,
     type text NOT NULL,
 
