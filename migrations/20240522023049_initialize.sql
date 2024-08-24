@@ -61,6 +61,7 @@ CREATE TABLE folders (
     parent_id_path bytea[] NOT NULL UNIQUE,
     parent_name_path text[] NOT NULL UNIQUE,
     share_key bytea UNIQUE,
+    size bigint NOT NULL DEFAULT 0,
 
     UNIQUE (owner_id, parent_name_path, name),
 );
