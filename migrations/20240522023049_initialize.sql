@@ -5,27 +5,27 @@ CREATE TABLE users (
     name text NOT NULL,
     birthdate date NOT NULL,
     password_hash text NOT NULL,
-    totp_secret bytea,
+    totp_secret bytea
 );
 
 CREATE TABLE unverified_emails (
     created_at timestamptz NOT NULL DEFAULT now(),
     user_id bytea PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
     email varchar(254) NOT NULL,
-    token_hash bytea NOT NULL,
+    token_hash bytea NOT NULL
 );
 
 CREATE TABLE password_resets (
     created_at timestamptz NOT NULL DEFAULT now(),
     user_id bytea PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-    token_hash bytea NOT NULL,
+    token_hash bytea NOT NULL
 );
 
 CREATE TABLE sessions (
     created_at timestamptz NOT NULL DEFAULT now(),
     accessed_at timestamptz NOT NULL DEFAULT now(),
     token_hash bytea PRIMARY KEY,
-    user_id bytea NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    user_id bytea NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE INDEX sessions_by_accessed_at ON sessions (accessed_at);
@@ -48,7 +48,7 @@ CREATE TABLE files (
     encoding encoding,
     type text NOT NULL,
 
-    UNIQUE (owner_id, parent_name_path, name),
+    UNIQUE (owner_id, parent_name_path, name)
 );
 
 CREATE INDEX files_by_id_path ON files (owner_id, parent_id_path, id);
@@ -63,7 +63,7 @@ CREATE TABLE folders (
     share_key bytea UNIQUE,
     size bigint NOT NULL DEFAULT 0,
 
-    UNIQUE (owner_id, parent_name_path, name),
+    UNIQUE (owner_id, parent_name_path, name)
 );
 
 CREATE INDEX folders_by_id_path ON folders (owner_id, parent_id_path, id);
