@@ -1,4 +1,4 @@
-//! A web server for the HTTP API. File Garden exposes this through `https://filegarden.com/api/`.
+//! A web server for the HTTP API. File Garden exposes this via `https://filegarden.com/api/`.
 
 use axum::{extract::Request, response::IntoResponse, Router};
 use once_cell::sync::Lazy;

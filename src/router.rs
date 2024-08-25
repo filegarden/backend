@@ -1,4 +1,4 @@
-//! All services and their request handlers.
+//! See [`handle`].
 
 use axum::{
     extract::Request,
