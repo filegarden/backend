@@ -1,4 +1,4 @@
-//! A web server for user-uploaded content. File Garden exposes this through `https://file.garden/`.
+//! A web server for user-uploaded content. File Garden exposes this via `https://file.garden/`.
 
 use std::borrow::Cow;
 
@@ -9,7 +9,6 @@ use axum::{
         Method, StatusCode,
     },
 };
-use axum_macros::debug_handler;
 use percent_encoding::{percent_decode_str, utf8_percent_encode};
 
 use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBSITE_ORIGIN};
@@ -18,9 +17,8 @@ use crate::{percent_encoding::COMPONENT_IGNORING_SLASH, response::Response, WEBS
 const FILE_ID_QUERY_PREFIX: &str = "_id=";
 
 /// The service function to handle incoming requests for user-uploaded content.
-#[allow(clippy::unused_async)] // Axum route handlers must be async.
-#[debug_handler]
-pub(super) async fn handler(request: Request) -> Response {
+pub(super) fn handle(request: Request) -> Response {
+    let (request, _body) = request.into_parts();
     let mut response = Response::new();
 
     response
@@ -30,10 +28,8 @@ pub(super) async fn handler(request: Request) -> Response {
             "default-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: mediastream:",
         );
 
-    let method = request.method();
-
-    if !(method == Method::GET || method == Method::HEAD) {
-        let status = if method == Method::OPTIONS {
+    if !(request.method == Method::GET || request.method == Method::HEAD) {
+        let status = if request.method == Method::OPTIONS {
             StatusCode::NO_CONTENT
         } else {
             StatusCode::METHOD_NOT_ALLOWED
@@ -46,8 +42,7 @@ pub(super) async fn handler(request: Request) -> Response {
         return response;
     }
 
-    let uri = request.uri();
-    let encoded_path = uri.path();
+    let encoded_path = request.uri.path();
 
     if encoded_path == "/" {
         return response.permanent_redirect(format!("{}/", *WEBSITE_ORIGIN).as_str());
@@ -65,7 +60,7 @@ pub(super) async fn handler(request: Request) -> Response {
     let normalized_encoded_path: Cow<str> =
         utf8_percent_encode(&path, COMPONENT_IGNORING_SLASH).into();
 
-    let query = uri.query();
+    let query = request.uri.query();
 
     if encoded_path != normalized_encoded_path {
         // Redirect to the same URI with normalized path encoding. This reduces how many URLs must
@@ -98,7 +93,7 @@ pub(super) async fn handler(request: Request) -> Response {
     //     .header_valid(CONTENT_TYPE, "")
     //     .header_valid(LAST_MODIFIED, "");
 
-    if method == Method::HEAD {
+    if request.method == Method::HEAD {
         return response;
     }
 

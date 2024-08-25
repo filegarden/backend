@@ -1,8 +1,11 @@
 //! File Garden's backend web server.
 
-pub(crate) mod percent_encoding;
-pub(crate) mod response;
-mod services;
+mod api;
+mod content;
+mod percent_encoding;
+mod response;
+mod router;
+mod website;
 
 use std::sync::OnceLock;
 
@@ -60,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Ready!");
 
-    axum::serve(listener, services::handler.into_make_service()).await?;
+    axum::serve(listener, router::handle.into_make_service()).await?;
 
     Ok(())
 }
