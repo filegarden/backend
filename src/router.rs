@@ -1,20 +1,21 @@
 //! See [`handle`].
 
+use std::sync::LazyLock;
+
 use axum::{
     extract::Request,
     http::{header::HOST, StatusCode},
     response::{IntoResponse, Response},
 };
 use axum_macros::debug_handler;
-use once_cell::sync::Lazy;
 
 use crate::{api, content, website, CONTENT_ORIGIN, WEBSITE_ORIGIN};
 
 /// The URI host for user-uploaded content.
-static CONTENT_HOST: Lazy<&str> = Lazy::new(|| host_from_origin(&CONTENT_ORIGIN));
+static CONTENT_HOST: LazyLock<&str> = LazyLock::new(|| host_from_origin(&CONTENT_ORIGIN));
 
 /// The URI host for the website.
-static WEBSITE_HOST: Lazy<&str> = Lazy::new(|| host_from_origin(&WEBSITE_ORIGIN));
+static WEBSITE_HOST: LazyLock<&str> = LazyLock::new(|| host_from_origin(&WEBSITE_ORIGIN));
 
 /// Handles all incoming requests and routes them to other services based on the request URI.
 #[debug_handler]

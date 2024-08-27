@@ -142,7 +142,6 @@ dependencies = [
  "axum",
  "axum-macros",
  "dotenvy",
- "once_cell",
  "percent-encoding",
  "sqlx",
  "tokio",

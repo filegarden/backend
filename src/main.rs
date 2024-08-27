@@ -7,21 +7,20 @@ mod response;
 mod router;
 mod website;
 
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 use axum::handler::HandlerWithoutStateExt;
-use once_cell::sync::Lazy;
 use sqlx::postgres::Postgres;
 use sqlx::Pool;
 use tokio::net::TcpListener;
 
 /// The URI origin for user-uploaded content.
-pub static CONTENT_ORIGIN: Lazy<String> = Lazy::new(|| {
+pub static CONTENT_ORIGIN: LazyLock<String> = LazyLock::new(|| {
     dotenvy::var("CONTENT_ORIGIN").expect("environment variable `CONTENT_ORIGIN` should be set")
 });
 
 /// The URI origin for the website.
-pub static WEBSITE_ORIGIN: Lazy<String> = Lazy::new(|| {
+pub static WEBSITE_ORIGIN: LazyLock<String> = LazyLock::new(|| {
     dotenvy::var("WEBSITE_ORIGIN").expect("environment variable `WEBSITE_ORIGIN` should be set")
 });
 
