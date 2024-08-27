@@ -2,16 +2,15 @@
 
 mod api;
 mod content;
+mod db;
 mod percent_encoding;
 mod response;
 mod router;
 mod website;
 
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 
 use axum::handler::HandlerWithoutStateExt;
-use sqlx::postgres::Postgres;
-use sqlx::Pool;
 use tokio::net::TcpListener;
 
 /// The URI origin for user-uploaded content.
@@ -24,20 +23,6 @@ pub static WEBSITE_ORIGIN: LazyLock<String> = LazyLock::new(|| {
     dotenvy::var("WEBSITE_ORIGIN").expect("environment variable `WEBSITE_ORIGIN` should be set")
 });
 
-/// The SQLx database pool.
-static DB_POOL: OnceLock<Pool<Postgres>> = OnceLock::new();
-
-/// Gets the SQLx database pool.
-///
-/// # Panics
-///
-/// Panics if called before the database pool is initialized by [`main`].
-pub fn db_pool() -> &'static Pool<Postgres> {
-    DB_POOL
-        .get()
-        .expect("database pool should be initialized before use")
-}
-
 /// # Errors
 ///
 /// See implementation.
@@ -46,15 +31,13 @@ async fn main() -> anyhow::Result<()> {
     let address = dotenvy::var("ADDRESS")?;
     let db_url = dotenvy::var("DATABASE_URL")?;
 
-    println!("Connecting to database...");
+    println!("Initializing database pool...");
 
-    DB_POOL
-        .set(Pool::<Postgres>::connect(&db_url).await?)
-        .expect("`DB_POOL` shouldn't already be set");
+    db::initialize_pool(&db_url);
 
     println!("Migrating database...");
 
-    sqlx::migrate!().run(db_pool()).await?;
+    sqlx::migrate!().run(db::pool()).await?;
 
     println!("Listening to {address}...");
 
