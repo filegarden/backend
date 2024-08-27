@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Initializing database pool...");
 
-    db::initialize_pool(&db_url);
+    db::initialize_pool(&db_url).await?;
 
     println!("Migrating database...");
 

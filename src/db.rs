@@ -9,6 +9,10 @@ static DB_POOL: OnceLock<PgPool> = OnceLock::new();
 
 /// Initializes the SQLx database pool.
 ///
+/// # Errors
+///
+/// Returns an error if the initial database connection fails.
+///
 /// # Panics
 ///
 /// Panics if the database is already initialized.
@@ -25,7 +29,7 @@ pub(super) async fn initialize_pool(db_url: &str) -> sqlx::Result<(), sqlx::Erro
 /// # Panics
 ///
 /// Panics if called before the database pool is initialized.
-pub fn pool() -> &'static PgPool {
+pub(crate) fn pool() -> &'static PgPool {
     DB_POOL
         .get()
         .expect("database pool should be initialized before use")
