@@ -1,17 +1,17 @@
 //! File Garden's backend web server.
 
-mod api;
+use std::sync::LazyLock;
+
+use axum::handler::HandlerWithoutStateExt;
+use tokio::net::TcpListener;
+
+pub mod api;
 mod content;
 mod db;
 mod percent_encoding;
 mod response;
 mod router;
 mod website;
-
-use std::sync::LazyLock;
-
-use axum::handler::HandlerWithoutStateExt;
-use tokio::net::TcpListener;
 
 /// The URI origin for user-uploaded content.
 pub static CONTENT_ORIGIN: LazyLock<String> = LazyLock::new(|| {
