@@ -31,10 +31,10 @@ pub(super) async fn handle(request: Request) -> Response {
 
     if host == Some(*WEBSITE_HOST) {
         if request.uri().path().starts_with("/api/") {
-            return api::handle(request).await.into_response();
+            return api::handle(request).await;
         }
 
-        return website::handle(request).into_response();
+        return website::handle(request);
     }
 
     StatusCode::MISDIRECTED_REQUEST.into_response()
