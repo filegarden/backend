@@ -69,10 +69,9 @@ impl IntoResponse for Error {
 pub(crate) type Response<T> = std::result::Result<Json<T>, Error>;
 
 /// Routes a request to an API endpoint.
-#[allow(clippy::missing_errors_doc)] // The error here is `Infallible`.
-pub(super) async fn handle(request: Request) -> impl IntoResponse {
+pub(super) async fn handle(request: Request) -> axum::response::Response {
     // Calling the router needs a mutable reference to it (even though it shouldn't), so the router
     // must either have restricted access via a mutex or be cloned on each request. The former would
     // allow only one request at a time, so the latter is faster.
-    ROUTER.clone().oneshot(request).await
+    ROUTER.clone().oneshot(request).await.into_response()
 }
