@@ -1,6 +1,13 @@
 //! A web server for the HTTP API. File Garden exposes this via `https://filegarden.com/api/`.
 
-use axum::{extract::Request, http::StatusCode, response::IntoResponse, Json};
+use std::error::Error as _;
+
+use axum::{
+    extract::{rejection::JsonRejection, Request},
+    http::StatusCode,
+    response::IntoResponse,
+};
+use axum_macros::FromRequest;
 use routes::ROUTER;
 use serde::Serialize;
 use strum_macros::IntoStaticStr;
@@ -22,9 +29,25 @@ pub enum Error {
     #[error("An internal database error occurred. Please try again.")]
     Database(#[from] sqlx::Error),
 
-    /// Validation failed for a value in the request body.
-    #[error("The request body contains an invalid value.")]
-    Validation,
+    /// The `Content-Type` header isn't set to `application/json`.
+    #[error("Header `Content-Type: application/json` must be set.")]
+    JsonContentType,
+
+    /// The JSON syntax is incorrect.
+    #[error("Invalid JSON syntax: {0}")]
+    JsonSyntax(String),
+
+    /// The requested API route doesn't exist.
+    #[error("The requested API route doesn't exist.")]
+    RouteNotFound,
+
+    /// An error occurred which is unknown or expected never to happen.
+    #[error("An unexpected internal server error occurred: {0}")]
+    Unknown(String),
+
+    /// The request body doesn't match the target type and its validation conditions.
+    #[error("Invalid request data: {0}")]
+    Validation(String),
 }
 
 impl Error {
@@ -33,13 +56,34 @@ impl Error {
         match self {
             Self::Csprng(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Validation => StatusCode::BAD_REQUEST,
+            Self::JsonContentType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            Self::JsonSyntax { .. } => StatusCode::BAD_REQUEST,
+            Self::RouteNotFound => StatusCode::NOT_FOUND,
+            Self::Unknown { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Validation { .. } => StatusCode::BAD_REQUEST,
         }
     }
 
     /// Gets the API error's code in `SCREAMING_SNAKE_CASE`.
     fn code(&self) -> &'static str {
         self.into()
+    }
+}
+
+impl From<JsonRejection> for Error {
+    fn from(rejection: JsonRejection) -> Self {
+        match rejection {
+            JsonRejection::JsonDataError(error) => Self::Validation(match error.source() {
+                Some(source) => source.to_string(),
+                None => error.body_text(),
+            }),
+            JsonRejection::JsonSyntaxError(error) => Self::JsonSyntax(match error.source() {
+                Some(source) => source.to_string(),
+                None => error.body_text(),
+            }),
+            JsonRejection::MissingJsonContentType(_) => Self::JsonContentType,
+            _ => Self::Unknown(rejection.body_text()),
+        }
     }
 }
 
@@ -65,8 +109,21 @@ impl IntoResponse for Error {
     }
 }
 
+/// Equivalent to [`axum::Json`], but fails with an [`Error`] JSON response instead of a plain text
+/// response.
+#[derive(Debug, FromRequest)]
+#[from_request(via(axum::Json), rejection(Error))]
+pub struct Json<T>(pub T);
+
+impl<T: Serialize> IntoResponse for Json<T> {
+    fn into_response(self) -> axum::response::Response {
+        let Self(value) = self;
+        axum::Json(value).into_response()
+    }
+}
+
 /// An API response type.
-pub(crate) type Response<T> = std::result::Result<Json<T>, Error>;
+pub type Response<T> = std::result::Result<Json<T>, Error>;
 
 /// Routes a request to an API endpoint.
 pub(super) async fn handle(request: Request) -> axum::response::Response {

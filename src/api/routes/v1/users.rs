@@ -4,7 +4,6 @@ use argon2::{
     password_hash::{Salt, SaltString},
     Argon2, PasswordHasher,
 };
-use axum::Json;
 use axum_macros::debug_handler;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use rand::RngCore;
@@ -13,7 +12,7 @@ use time::{Date, Month};
 use validator::Validate;
 
 use crate::{
-    api::{self, Response},
+    api::{self, Json, Response},
     db,
 };
 
@@ -63,10 +62,13 @@ pub struct PostResponse {
 /// See [`api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let Ok(birthdate) = Month::try_from(body.birth_month)
-        .and_then(|month| Date::from_calendar_date(body.birth_year, month, body.birth_day))
-    else {
-        return Err(api::Error::Validation);
+    let birthdate: Date = match Date::from_calendar_date(
+        body.birth_year,
+        Month::try_from(body.birth_month).expect("`birth_month` should be validated as in range"),
+        body.birth_day,
+    ) {
+        Ok(birthdate) => birthdate,
+        Err(error) => return Err(api::Error::Validation(error.to_string())),
     };
 
     let user_id = {
