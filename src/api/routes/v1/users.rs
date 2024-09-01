@@ -82,7 +82,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     let password_hash = Argon2::default()
         .hash_password(body.password.as_bytes(), &salt_string)
-        .expect("hashing should be infallible")
+        .expect("password hashing should be infallible")
         .to_string();
 
     sqlx::query!(
