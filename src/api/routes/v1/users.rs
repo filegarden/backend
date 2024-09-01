@@ -35,8 +35,7 @@ pub struct PostRequest {
     pub birth_year: i32,
 
     /// The user's birth month.
-    #[validate(range(min = 1, max = 12))]
-    pub birth_month: u8,
+    pub birth_month: Month,
 
     /// The day of the month of the user's birthdate.
     #[validate(range(min = 1, max = 31))]
@@ -62,14 +61,11 @@ pub struct PostResponse {
 /// See [`api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let birthdate: Date = match Date::from_calendar_date(
-        body.birth_year,
-        Month::try_from(body.birth_month).expect("`birth_month` should be validated as in range"),
-        body.birth_day,
-    ) {
-        Ok(birthdate) => birthdate,
-        Err(error) => return Err(api::Error::Validation(error.to_string())),
-    };
+    let birthdate: Date =
+        match Date::from_calendar_date(body.birth_year, body.birth_month, body.birth_day) {
+            Ok(birthdate) => birthdate,
+            Err(error) => return Err(api::Error::Validation(error.to_string())),
+        };
 
     let user_id = {
         let mut user_id = [0_u8; USER_ID_LENGTH];
