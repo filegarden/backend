@@ -45,14 +45,12 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
 
     fn try_from(string: String) -> Result<Self, Self::Error> {
         if string.len() < MIN {
-            return Err(BoundedStringError::TooShort(string.len()));
+            Err(BoundedStringError::TooShort(string.len()))
+        } else if string.len() > MAX {
+            Err(BoundedStringError::TooLong(string.len()))
+        } else {
+            Ok(Self(string))
         }
-
-        if string.len() > MAX {
-            return Err(BoundedStringError::TooLong(string.len()));
-        }
-
-        Ok(Self(string))
     }
 }
 
