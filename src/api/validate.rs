@@ -24,7 +24,8 @@ pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Da
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(try_from = "String")]
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
 
 /// An error initializing a [`BoundedString`] from a [`String`].
@@ -60,13 +61,5 @@ impl<const MIN: usize, const MAX: usize> Deref for BoundedString<MIN, MAX> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-impl<'de, const MIN: usize, const MAX: usize> Deserialize<'de> for BoundedString<MIN, MAX> {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let string = String::deserialize(deserializer)?;
-
-        Self::try_from(string).map_err(de::Error::custom)
     }
 }
