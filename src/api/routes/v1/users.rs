@@ -10,10 +10,12 @@ use lettre::Address;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use time::Date;
-use validator::Validate;
 
 use crate::{
-    api::{validate::deserialize_date, Json, Response},
+    api::{
+        validate::{deserialize_date, UserName, UserPassword},
+        Json, Response,
+    },
     db,
 };
 
@@ -21,23 +23,21 @@ use crate::{
 const USER_ID_LENGTH: usize = 8;
 
 /// A `POST` request body.
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The user's email address.
     pub email: Address,
 
     /// The user's name.
-    #[validate(length(min = 1, max = 64))]
-    pub name: String,
+    pub name: UserName,
 
     /// The user's birthdate, from a string in ISO 8601 date format.
     #[serde(deserialize_with = "deserialize_date")]
     pub birthdate: Date,
 
     /// The user's password in plain text.
-    #[validate(length(min = 8, max = 256))]
-    pub password: String,
+    pub password: UserPassword,
 }
 
 /// A `POST` response body.
@@ -77,7 +77,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
         &user_id,
         body.email.to_string(),
-        body.name,
+        *body.name,
         body.birthdate,
         password_hash,
     )

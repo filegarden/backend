@@ -25,7 +25,6 @@ thiserror = "1"
 time = { version = "0.3", features = ["serde", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
-validator = { version = "0.18", features = ["derive"] }
 
 [lints]
 # Last updated for Clippy version: 1.80
