@@ -15,13 +15,14 @@ axum = "0.7"
 axum-macros = "0.4"
 base64 = "0.22"
 dotenvy = "0.15"
+lettre = { version = "0.11", features = ["serde"] }
 percent-encoding = "2"
 rand = "0.8"
 serde = "1"
 sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres", "time"] }
 strum_macros = "0.26"
 thiserror = "1"
-time = { version = "0.3", features = ["serde"] }
+time = { version = "0.3", features = ["serde", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 validator = { version = "0.18", features = ["derive"] }

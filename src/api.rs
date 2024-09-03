@@ -3,18 +3,20 @@
 use std::error::Error as _;
 
 use axum::{
-    extract::{rejection::JsonRejection, Request},
+    async_trait,
+    extract::{rejection::JsonRejection, FromRequest, Request},
     http::StatusCode,
     response::IntoResponse,
 };
-use axum_macros::FromRequest;
 use routes::ROUTER;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use strum_macros::IntoStaticStr;
 use thiserror::Error;
 use tower::ServiceExt;
+use validator::{Validate, ValidationErrors};
 
 pub mod routes;
+pub mod validate;
 
 /// An API error.
 #[derive(Debug, Error, IntoStaticStr)]
@@ -87,6 +89,12 @@ impl From<JsonRejection> for Error {
     }
 }
 
+impl From<ValidationErrors> for Error {
+    fn from(errors: ValidationErrors) -> Self {
+        Self::Validation(errors.to_string())
+    }
+}
+
 /// An API error's response body.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -110,15 +118,30 @@ impl IntoResponse for Error {
 }
 
 /// Equivalent to [`axum::Json`], but fails with an [`Error`] JSON response instead of a plain text
-/// response.
-#[derive(Debug, FromRequest)]
-#[from_request(via(axum::Json), rejection(Error))]
+/// response, and validates request bodies that implement [`validator::Validate`].
+#[derive(Debug)]
 pub struct Json<T>(pub T);
 
 impl<T: Serialize> IntoResponse for Json<T> {
     fn into_response(self) -> axum::response::Response {
         let Self(value) = self;
         axum::Json(value).into_response()
+    }
+}
+
+#[async_trait]
+impl<T, S> FromRequest<S> for Json<T>
+where
+    T: DeserializeOwned + Validate,
+    S: Send + Sync,
+{
+    type Rejection = Error;
+
+    async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let axum::Json(body) = axum::Json::<T>::from_request(request, state).await?;
+        body.validate()?;
+
+        Ok(Self(body))
     }
 }
 

@@ -6,13 +6,14 @@ use argon2::{
 };
 use axum_macros::debug_handler;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use lettre::Address;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
-use time::{Date, Month};
+use time::Date;
 use validator::Validate;
 
 use crate::{
-    api::{self, Json, Response},
+    api::{validate::deserialize_date, Json, Response},
     db,
 };
 
@@ -21,25 +22,18 @@ const USER_ID_LENGTH: usize = 8;
 
 /// A `POST` request body.
 #[derive(Debug, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
-    /// The user's email.
-    #[validate(email)]
-    pub email: String,
+    /// The user's email address.
+    pub email: Address,
 
     /// The user's name.
     #[validate(length(min = 1, max = 64))]
     pub name: String,
 
-    /// The user's birth year.
-    pub birth_year: i32,
-
-    /// The user's birth month.
-    pub birth_month: Month,
-
-    /// The day of the month of the user's birthdate.
-    #[validate(range(min = 1, max = 31))]
-    pub birth_day: u8,
+    /// The user's birthdate, from a string in ISO 8601 date format.
+    #[serde(deserialize_with = "deserialize_date")]
+    pub birthdate: Date,
 
     /// The user's password in plain text.
     #[validate(length(min = 8, max = 256))]
@@ -61,12 +55,6 @@ pub struct PostResponse {
 /// See [`api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let birthdate: Date =
-        match Date::from_calendar_date(body.birth_year, body.birth_month, body.birth_day) {
-            Ok(birthdate) => birthdate,
-            Err(error) => return Err(api::Error::Validation(error.to_string())),
-        };
-
     let user_id = {
         let mut user_id = [0_u8; USER_ID_LENGTH];
         rand::thread_rng().try_fill_bytes(&mut user_id)?;
@@ -88,9 +76,9 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     sqlx::query!(
         "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
         &user_id,
-        body.email,
+        body.email.to_string(),
         body.name,
-        birthdate,
+        body.birthdate,
         password_hash,
     )
     .execute(db::pool())
