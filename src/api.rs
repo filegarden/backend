@@ -22,6 +22,10 @@ pub mod validate;
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum Error {
+    /// The request body is too large.
+    #[error("The request body is too large.")]
+    ContentTooLarge,
+
     /// A CSPRNG operation failed.
     #[error("Couldn't securely invoke the server's random number generator. Please try again.")]
     Csprng(#[from] rand::Error),
@@ -55,6 +59,7 @@ impl Error {
     /// Gets the HTTP response status code corresponding to the API error.
     pub const fn status(&self) -> StatusCode {
         match self {
+            Self::ContentTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
             Self::Csprng(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::JsonContentType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
@@ -72,8 +77,12 @@ impl Error {
 }
 
 impl From<JsonRejection> for Error {
-    fn from(rejection: JsonRejection) -> Self {
-        match rejection {
+    fn from(error: JsonRejection) -> Self {
+        if error.status() == StatusCode::PAYLOAD_TOO_LARGE {
+            return Self::ContentTooLarge;
+        }
+
+        match error {
             JsonRejection::JsonDataError(error) => Self::Validation(match error.source() {
                 Some(source) => source.to_string(),
                 None => error.body_text(),
