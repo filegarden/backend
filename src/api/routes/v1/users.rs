@@ -22,7 +22,7 @@ use crate::{
 /// The length of a user ID in bytes.
 const USER_ID_LENGTH: usize = 8;
 
-/// A `POST` request body.
+/// A `POST` request body for this API route.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
@@ -40,7 +40,7 @@ pub struct PostRequest {
     pub password: UserPassword,
 }
 
-/// A `POST` response body.
+/// A `POST` response body for this API route.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
