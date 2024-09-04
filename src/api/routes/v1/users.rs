@@ -53,7 +53,7 @@ pub struct PostResponse {
 ///
 /// # Errors
 ///
-/// See [`api::Error`].
+/// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     let user_id = NewUserId::generate()?;
