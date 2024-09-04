@@ -80,13 +80,10 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     .execute(db::pool())
     .await?;
 
-    Ok((StatusCode::CREATED, Json(PostResponse { id: user_id })))
+    Ok((StatusCode::OK, Json(PostResponse {})))
 }
 
 /// A `POST` response body for this API route.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PostResponse {
-    /// The user's ID.
-    pub id: NewUserId,
-}
+pub struct PostResponse {}
