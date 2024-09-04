@@ -65,7 +65,7 @@ impl<const MIN: usize, const MAX: usize> Deref for BoundedString<MIN, MAX> {
 impl<T, const MIN: usize, const MAX: usize> AsRef<T> for BoundedString<MIN, MAX>
 where
     T: ?Sized,
-    <BoundedString<MIN, MAX> as Deref>::Target: AsRef<T>,
+    <Self as Deref>::Target: AsRef<T>,
 {
     fn as_ref(&self) -> &T {
         self.deref().as_ref()
