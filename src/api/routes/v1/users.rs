@@ -6,7 +6,6 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use lettre::Address;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -18,10 +17,8 @@ use crate::{
         Json, Response,
     },
     db,
+    id::Id,
 };
-
-/// The length of a user ID in bytes.
-const USER_ID_LENGTH: usize = 8;
 
 /// A `POST` request body for this API route.
 #[derive(Debug, Deserialize)]
@@ -41,12 +38,15 @@ pub struct PostRequest {
     pub password: UserPassword,
 }
 
+/// The type to create new user IDs with.
+type NewUserId = Id<[u8; 8]>;
+
 /// A `POST` response body for this API route.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The user's ID.
-    pub id: String,
+    pub id: NewUserId,
 }
 
 /// Creates a new user and sends them an account verification email.
@@ -56,11 +56,7 @@ pub struct PostResponse {
 /// See [`api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let user_id = {
-        let mut user_id = [0_u8; USER_ID_LENGTH];
-        rand::thread_rng().try_fill_bytes(&mut user_id)?;
-        user_id
-    };
+    let user_id = NewUserId::generate()?;
 
     let salt_string = SaltString::encode_b64(&{
         let mut salt = [0_u8; Salt::RECOMMENDED_LENGTH];
@@ -76,7 +72,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     sqlx::query!(
         "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
-        &user_id,
+        &*user_id,
         body.email.to_string(),
         *body.name,
         body.birthdate,
@@ -85,10 +81,5 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     .execute(db::pool())
     .await?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(PostResponse {
-            id: URL_SAFE_NO_PAD.encode(user_id),
-        }),
-    ))
+    Ok((StatusCode::CREATED, Json(PostResponse { id: user_id })))
 }
