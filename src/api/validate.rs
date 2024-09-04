@@ -18,9 +18,9 @@ pub type UserPassword = BoundedString<8, 256>;
 ///
 /// Fails if the input is an invalid [`String`] or invalid ISO 8601 date.
 pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Date, D::Error> {
-    let string = String::deserialize(deserializer)?;
+    let str = <&str>::deserialize(deserializer)?;
 
-    Date::parse(&string, &Iso8601::DATE).map_err(de::Error::custom)
+    Date::parse(str, &Iso8601::DATE).map_err(de::Error::custom)
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
