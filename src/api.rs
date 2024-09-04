@@ -133,7 +133,7 @@ impl<T: Serialize> IntoResponse for Json<T> {
 }
 
 /// An API response type.
-pub type Response<T> = std::result::Result<Json<T>, Error>;
+pub type Response<T> = std::result::Result<(StatusCode, Json<T>), Error>;
 
 /// Routes a request to an API endpoint.
 pub(super) async fn handle(request: Request) -> axum::response::Response {

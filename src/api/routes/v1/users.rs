@@ -4,6 +4,7 @@ use argon2::{
     password_hash::{Salt, SaltString},
     Argon2, PasswordHasher,
 };
+use axum::http::StatusCode;
 use axum_macros::debug_handler;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use lettre::Address;
@@ -84,7 +85,10 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     .execute(db::pool())
     .await?;
 
-    Ok(Json(PostResponse {
-        id: URL_SAFE_NO_PAD.encode(user_id),
-    }))
+    Ok((
+        StatusCode::CREATED,
+        Json(PostResponse {
+            id: URL_SAFE_NO_PAD.encode(user_id),
+        }),
+    ))
 }
