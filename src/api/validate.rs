@@ -3,6 +3,7 @@
 use std::ops::Deref;
 
 use serde::{de, Deserialize, Deserializer};
+use serde_with::SerializeDisplay;
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, Date};
 
@@ -24,7 +25,7 @@ pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Da
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, SerializeDisplay)]
 #[serde(try_from = "String")]
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
 
