@@ -1,6 +1,9 @@
 //! Utilities to help with API request validation.
 
-use std::ops::Deref;
+use std::{
+    fmt::{self, Display, Formatter},
+    ops::Deref,
+};
 
 use serde::{de, Deserialize, Deserializer};
 use serde_with::SerializeDisplay;
@@ -52,6 +55,12 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
         } else {
             Ok(Self(string))
         }
+    }
+}
+
+impl<const MIN: usize, const MAX: usize> Display for BoundedString<MIN, MAX> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        String::fmt(self, f)
     }
 }
 
