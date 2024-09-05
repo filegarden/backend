@@ -2,16 +2,17 @@
 
 use std::{
     fmt::{self, Display, Formatter},
-    ops::Deref,
     str::FromStr,
 };
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use derive_more::derive::{AsRef, Deref};
 use rand::RngCore;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 /// An ID that can be deserialized from and serialized to `base64url` (without padding).
-#[derive(Debug, DeserializeFromStr, SerializeDisplay, Clone)]
+#[derive(Debug, Deref, AsRef, DeserializeFromStr, SerializeDisplay, Clone)]
+#[as_ref(forward)]
 pub struct Id<T>(T);
 
 impl<T> Id<T>
@@ -42,23 +43,5 @@ impl FromStr for Id<Vec<u8>> {
 impl<T: AsRef<[u8]>> Display for Id<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", URL_SAFE_NO_PAD.encode(self))
-    }
-}
-
-impl<T> Deref for Id<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T, Inner> AsRef<T> for Id<Inner>
-where
-    T: ?Sized,
-    Inner: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        self.deref().as_ref()
     }
 }

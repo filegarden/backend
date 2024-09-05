@@ -14,8 +14,9 @@ argon2 = "0.5"
 axum = "0.7"
 axum-macros = "0.4"
 base64 = "0.22"
+derive_more = { version = "1", features = ["full"] }
 dotenvy = "0.15"
-lettre = { version = "0.11", features = ["serde"] }
+lettre = { version = "0.11.8", features = ["serde"] }
 percent-encoding = "2"
 rand = "0.8"
 serde = "1"

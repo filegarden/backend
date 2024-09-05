@@ -1,10 +1,6 @@
 //! Utilities to help with API request validation.
 
-use std::{
-    fmt::{self, Display, Formatter},
-    ops::Deref,
-};
-
+use derive_more::derive::{AsRef, Deref, Display};
 use serde::{de, Deserialize, Deserializer};
 use serde_with::SerializeDisplay;
 use thiserror::Error;
@@ -28,7 +24,8 @@ pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Da
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
-#[derive(Debug, Deserialize, SerializeDisplay)]
+#[derive(Debug, Deref, AsRef, Display, Deserialize, SerializeDisplay)]
+#[as_ref(forward)]
 #[serde(try_from = "String")]
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
 
@@ -55,29 +52,5 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
         } else {
             Ok(Self(string))
         }
-    }
-}
-
-impl<const MIN: usize, const MAX: usize> Display for BoundedString<MIN, MAX> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        String::fmt(self, f)
-    }
-}
-
-impl<const MIN: usize, const MAX: usize> Deref for BoundedString<MIN, MAX> {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T, const MIN: usize, const MAX: usize> AsRef<T> for BoundedString<MIN, MAX>
-where
-    T: ?Sized,
-    <Self as Deref>::Target: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        self.deref().as_ref()
     }
 }
