@@ -21,6 +21,8 @@ use crate::{
 };
 
 /// The type to create new user IDs with.
+///
+/// Note that existing user IDs may not have the same size.
 type NewUserId = Id<[u8; 8]>;
 
 /// Hashes and salts a password using Argon2.
