@@ -6,7 +6,12 @@
     "parameters": {
       "Left": [
         "Bytea",
-        "Varchar",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
         "Text",
         "Date",
         "Text"
