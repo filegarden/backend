@@ -28,11 +28,11 @@ pub enum Error {
 
     /// A CSPRNG operation failed.
     #[error("Couldn't securely invoke the server's random number generator. Please try again.")]
-    Csprng(#[from] rand::Error),
+    Csprng,
 
     /// A database operation failed.
     #[error("An internal database error occurred. Please try again.")]
-    Database(#[from] sqlx::Error),
+    Database,
 
     /// The `Content-Type` header isn't set to `application/json`.
     #[error("Header `Content-Type: application/json` must be set.")]
@@ -60,19 +60,31 @@ impl Error {
     pub const fn status(&self) -> StatusCode {
         match self {
             Self::ContentTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
-            Self::Csprng(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Csprng => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Database => StatusCode::INTERNAL_SERVER_ERROR,
             Self::JsonContentType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            Self::JsonSyntax { .. } => StatusCode::BAD_REQUEST,
+            Self::JsonSyntax(_) => StatusCode::BAD_REQUEST,
             Self::RouteNotFound => StatusCode::NOT_FOUND,
-            Self::Unknown { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Validation { .. } => StatusCode::BAD_REQUEST,
+            Self::Unknown(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Validation(_) => StatusCode::BAD_REQUEST,
         }
     }
 
     /// Gets the API error's code in `SCREAMING_SNAKE_CASE`.
     fn code(&self) -> &'static str {
         self.into()
+    }
+}
+
+impl From<rand::Error> for Error {
+    fn from(_: rand::Error) -> Self {
+        Self::Csprng
+    }
+}
+
+impl From<sqlx::Error> for Error {
+    fn from(_: sqlx::Error) -> Self {
+        Self::Database
     }
 }
 
