@@ -11,7 +11,7 @@ use rand::RngCore;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 /// An ID that can be deserialized from and serialized to `base64url` (without padding).
-#[derive(Debug, Deref, AsRef, DeserializeFromStr, SerializeDisplay, Clone)]
+#[derive(Deref, AsRef, DeserializeFromStr, SerializeDisplay, Clone, Eq, PartialEq, Hash, Debug)]
 #[as_ref(forward)]
 pub struct Id<T>(T);
 

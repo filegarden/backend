@@ -24,13 +24,25 @@ pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Da
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
-#[derive(Debug, Deref, AsRef, Display, Deserialize, SerializeDisplay)]
+#[derive(
+    Deref,
+    AsRef,
+    Display,
+    Deserialize,
+    SerializeDisplay,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Debug,
+)]
 #[as_ref(forward)]
 #[serde(try_from = "String")]
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
 
-/// An error initializing a [`BoundedString`] from a [`String`].
-#[derive(Debug, Error)]
+/// An error constructing a [`BoundedString`].
+#[derive(Error, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum BoundedStringError<const MIN: usize, const MAX: usize> {
     /// The length was less than the [`BoundedString`]'s `MIN`.
     #[error("invalid length {0}, expected at least {MIN}")]

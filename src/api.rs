@@ -18,7 +18,7 @@ pub mod routes;
 pub mod validate;
 
 /// An API error.
-#[derive(Debug, Error, IntoStaticStr)]
+#[derive(Error, IntoStaticStr, Clone, Debug)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum Error {
@@ -110,7 +110,7 @@ impl From<JsonRejection> for Error {
 }
 
 /// An API error's response body.
-#[derive(Debug, Serialize)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorBody {
     /// The computer-friendly error code in `SCREAMING_SNAKE_CASE`. See [`Error`] for error codes.
@@ -133,7 +133,7 @@ impl IntoResponse for Error {
 
 /// Equivalent to [`axum::Json`], but fails with an [`Error`] JSON response instead of a plain text
 /// response.
-#[derive(Debug, FromRequest)]
+#[derive(FromRequest, Clone, Debug)]
 #[from_request(via(axum::Json), rejection(Error))]
 pub struct Json<T>(pub T);
 

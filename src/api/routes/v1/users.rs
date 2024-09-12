@@ -43,7 +43,7 @@ fn hash_password(password: &str) -> Result<String, rand::Error> {
 }
 
 /// A `POST` request body for this API route.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The user's email address.
@@ -92,7 +92,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 }
 
 /// A `POST` response body for this API route.
-#[derive(Debug, Serialize)]
+#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The user's email address.
