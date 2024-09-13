@@ -153,6 +153,8 @@ mod tests {
     fn user_email_validation() {
         let invalid_emails = [
             "invalid",
+            "invalid@invalid@example.com",
+            "invalid user@example.com",
             "user@example-.com",
             "user@[127.0.0.1]",
             "user@[::1]",
