@@ -168,7 +168,10 @@ mod tests {
 
     #[test]
     fn user_email_normalization() -> anyhow::Result<()> {
+        // The user portion isn't all lowercase or all uppercase when normalized because RFC 5321
+        // (section 2.3.11) lets mail servers treat the user portion case-sensitively.
         let normalized_email = "uSeR@examplé.com";
+
         let equivalent_emails = [
             "uSeR@examplé.com",
             "uSeR@example\u{0301}.com",
