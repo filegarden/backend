@@ -30,7 +30,7 @@ tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 
 [lints]
-# Last updated for Clippy version: 1.80
+# Last updated for Clippy version: 1.81
 
 # Enforces soundness.
 rust.unsafe_code = "deny"

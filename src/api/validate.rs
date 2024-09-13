@@ -145,7 +145,7 @@ impl FromStr for UserEmail {
 }
 
 #[cfg(test)]
-#[allow(clippy::missing_errors_doc)]
+#[expect(clippy::missing_errors_doc, reason = "see rust-lang/rust-clippy#13391")]
 mod tests {
     use super::*;
 
