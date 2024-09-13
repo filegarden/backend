@@ -6,14 +6,13 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
-use lettre::Address;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use time::Date;
 
 use crate::{
     api::{
-        validate::{deserialize_date, UserName, UserPassword},
+        validate::{deserialize_date, UserEmail, UserName, UserPassword},
         Json, Response,
     },
     db,
@@ -47,7 +46,7 @@ fn hash_password(password: &str) -> Result<String, rand::Error> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The user's email address.
-    pub email: Address,
+    pub email: UserEmail,
 
     /// The user's name.
     pub name: UserName,
@@ -96,7 +95,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The user's email address.
-    pub email: Address,
+    pub email: UserEmail,
 
     /// The user's name.
     pub name: UserName,

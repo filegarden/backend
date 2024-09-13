@@ -1,8 +1,12 @@
 //! Utilities to help with API request validation.
 
+use std::str::FromStr;
+
 use derive_more::derive::{AsRef, Deref, Display};
-use serde::{de, Deserialize, Deserializer};
-use serde_with::SerializeDisplay;
+use idna::uts46::{self, Uts46};
+use lettre::Address;
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, Date};
 
@@ -64,5 +68,133 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
         } else {
             Ok(Self(string))
         }
+    }
+}
+
+/// A user-inputted email address. Ensures the address uses a domain name with a TLD, and normalizes
+/// the domain name (for non-ASCII characters).
+#[derive(
+    Deref,
+    AsRef,
+    Display,
+    DeserializeFromStr,
+    Serialize,
+    Clone,
+    PartialOrd,
+    Ord,
+    PartialEq,
+    Eq,
+    Hash,
+    Debug,
+)]
+#[as_ref(forward)]
+pub struct UserEmail(Address);
+
+/// An error constructing a [`UserEmail`].
+#[derive(Error, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[non_exhaustive]
+pub enum UserEmailError {
+    /// The email address was invalid.
+    #[error("invalid email address")]
+    Invalid,
+
+    /// The domain part was an IP address rather than a domain name. There's no reason to let users
+    /// use IP addresses in emails; strict mail agents don't even allow it.
+    #[error("IP addresses not allowed in email address")]
+    IpAddr,
+
+    /// The domain name has no TLD. This is likely a typo or a user trying to exploit `localhost`.
+    #[error("domain in email address is missing a TLD")]
+    NoTld,
+}
+
+impl FromStr for UserEmail {
+    type Err = UserEmailError;
+
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let Some((user, domain)) = str.rsplit_once('@') else {
+            return Err(UserEmailError::Invalid);
+        };
+
+        if domain.starts_with('[') {
+            return Err(UserEmailError::IpAddr);
+        }
+
+        if !domain.contains('.') {
+            return Err(UserEmailError::NoTld);
+        }
+
+        let (domain, domain_result) = Uts46::new().to_user_interface(
+            // These are the recommended arguments for this function.
+            domain.as_bytes(),
+            uts46::AsciiDenyList::URL,
+            uts46::Hyphens::Allow,
+            |_, _, _| true,
+        );
+
+        if domain_result.is_err() {
+            return Err(UserEmailError::Invalid);
+        }
+
+        let Ok(address) = Address::new(user, domain.to_lowercase()) else {
+            return Err(UserEmailError::Invalid);
+        };
+
+        Ok(Self(address))
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::missing_errors_doc)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_email_validation() {
+        assert_eq!("invalid".parse::<UserEmail>(), Err(UserEmailError::Invalid));
+        assert_eq!(
+            "user@invalid.com-".parse::<UserEmail>(),
+            Err(UserEmailError::Invalid)
+        );
+        assert_eq!(
+            "user@[127.0.0.1]".parse::<UserEmail>(),
+            Err(UserEmailError::IpAddr)
+        );
+        assert_eq!(
+            "user@[::1]".parse::<UserEmail>(),
+            Err(UserEmailError::IpAddr)
+        );
+        assert_eq!(
+            "user@examplecom".parse::<UserEmail>(),
+            Err(UserEmailError::NoTld)
+        );
+    }
+
+    #[test]
+    fn user_email_normalization() -> anyhow::Result<()> {
+        assert_ne!(
+            "User@example.com".parse::<UserEmail>()?,
+            "user@example.com".parse::<UserEmail>()?
+        );
+
+        let normalized_email = "user@examplé.com";
+        let equivalent_emails = [
+            "user@examplé.com",
+            "user@example\u{0301}.com",
+            "user@example\u{0301}.com",
+            "user@EXAMPLÉ.com",
+            "user@EXAMPLE\u{0301}.com",
+            "user@xn--exampl-gva.com",
+            "user@xN--eXaMpL-gVa.CoM",
+        ];
+
+        for email in equivalent_emails {
+            assert_eq!(
+                normalized_email,
+                email.parse::<UserEmail>()?.as_ref() as &str
+            );
+        }
+
+        Ok(())
     }
 }
