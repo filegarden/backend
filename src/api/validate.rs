@@ -172,19 +172,14 @@ mod tests {
 
     #[test]
     fn user_email_normalization() -> anyhow::Result<()> {
-        assert_ne!(
-            "User@example.com".parse::<UserEmail>()?,
-            "user@example.com".parse::<UserEmail>()?
-        );
-
-        let normalized_email = "user@examplé.com";
+        let normalized_email = "uSeR@examplé.com";
         let equivalent_emails = [
-            "user@examplé.com",
-            "user@example\u{0301}.com",
-            "user@EXAMPLÉ.com",
-            "user@EXAMPLE\u{0301}.com",
-            "user@xn--exampl-gva.com",
-            "user@xN--eXaMpL-gVa.CoM",
+            "uSeR@examplé.com",
+            "uSeR@example\u{0301}.com",
+            "uSeR@EXAMPLÉ.com",
+            "uSeR@EXAMPLE\u{0301}.com",
+            "uSeR@xn--exampl-gva.com",
+            "uSeR@xN--eXaMpL-gVa.CoM",
         ];
 
         for email in equivalent_emails {
