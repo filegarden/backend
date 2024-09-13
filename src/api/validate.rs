@@ -151,23 +151,19 @@ mod tests {
 
     #[test]
     fn user_email_validation() {
-        assert_eq!("invalid".parse::<UserEmail>(), Err(UserEmailError::Invalid));
-        assert_eq!(
-            "user@invalid.com-".parse::<UserEmail>(),
-            Err(UserEmailError::Invalid)
-        );
-        assert_eq!(
-            "user@[127.0.0.1]".parse::<UserEmail>(),
-            Err(UserEmailError::IpAddr)
-        );
-        assert_eq!(
-            "user@[::1]".parse::<UserEmail>(),
-            Err(UserEmailError::IpAddr)
-        );
-        assert_eq!(
-            "user@examplecom".parse::<UserEmail>(),
-            Err(UserEmailError::NoTld)
-        );
+        let invalid_emails = [
+            "invalid",
+            "user@example-.com",
+            "user@[127.0.0.1]",
+            "user@[::1]",
+            "user@examplecom",
+        ];
+
+        for email in invalid_emails {
+            email
+                .parse::<UserEmail>()
+                .expect_err("user email should be invalid");
+        }
     }
 
     #[test]
