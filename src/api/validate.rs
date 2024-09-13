@@ -90,6 +90,13 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
 #[as_ref(forward)]
 pub struct UserEmail(Address);
 
+impl UserEmail {
+    /// Gets a reference to the email address string.
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 /// An error constructing a [`UserEmail`].
 #[derive(Error, Copy, Clone, Eq, PartialEq, Debug)]
 #[non_exhaustive]
@@ -184,10 +191,7 @@ mod tests {
         ];
 
         for email in equivalent_emails {
-            assert_eq!(
-                normalized_email,
-                email.parse::<UserEmail>()?.as_ref() as &str
-            );
+            assert_eq!(normalized_email, email.parse::<UserEmail>()?.as_str());
         }
 
         Ok(())

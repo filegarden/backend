@@ -72,9 +72,9 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     sqlx::query!(
         "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
-        &*user_id,
-        body.email.to_string(),
-        *body.name,
+        user_id.as_slice(),
+        body.email.as_str(),
+        body.name.as_str(),
         body.birthdate,
         password_hash,
     )
