@@ -18,7 +18,7 @@ pub mod routes;
 pub mod validate;
 
 /// An API error.
-#[derive(Error, IntoStaticStr, Clone, Debug)]
+#[derive(Error, IntoStaticStr, Clone, PartialEq, Eq, Debug)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum Error {
@@ -133,7 +133,7 @@ impl IntoResponse for Error {
 
 /// Equivalent to [`axum::Json`], but fails with an [`Error`] JSON response instead of a plain text
 /// response.
-#[derive(FromRequest, Clone, Debug)]
+#[derive(FromRequest, Clone, Copy, Default, Debug)]
 #[from_request(via(axum::Json), rejection(Error))]
 pub struct Json<T>(pub T);
 

@@ -46,7 +46,7 @@ pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Da
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
 
 /// An error constructing a [`BoundedString`].
-#[derive(Error, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Error, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoundedStringError<const MIN: usize, const MAX: usize> {
     /// The length was less than the [`BoundedString`]'s `MIN`.
     #[error("invalid length {0}, expected at least {MIN}")]
@@ -80,10 +80,10 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
     DeserializeFromStr,
     Serialize,
     Clone,
-    PartialOrd,
-    Ord,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
     Hash,
     Debug,
 )]
@@ -91,7 +91,7 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
 pub struct UserEmail(Address);
 
 /// An error constructing a [`UserEmail`].
-#[derive(Error, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Error, Copy, Clone, Eq, PartialEq, Debug)]
 #[non_exhaustive]
 pub enum UserEmailError {
     /// The email address was invalid.
