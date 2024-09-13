@@ -72,13 +72,12 @@ pub(super) fn handle(request: Request) -> Response {
         return response.permanent_redirect(&normalized_uri);
     }
 
-    let (user_identifier, file_path) = {
-        let path = path.strip_prefix('/').expect("path should start with `/`");
-
-        match path.find('/') {
-            Some(slash_index) => path.split_at(slash_index),
-            None => (path, "/"),
-        }
+    let Some((user_identifier, file_path)) = path
+        .strip_prefix('/')
+        .expect("path should start with `/`")
+        .split_once('/')
+    else {
+        return response.plain_error(StatusCode::BAD_REQUEST);
     };
 
     let file_id = match query {
