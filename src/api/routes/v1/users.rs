@@ -64,20 +64,31 @@ pub struct PostRequest {
 /// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let user_id = NewUserId::generate()?;
+    let mut user_id = NewUserId::generate()?;
 
     let password_hash = hash_password(&body.password)?;
 
-    sqlx::query!(
-        "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
-        user_id.as_slice(),
-        body.email.as_str(),
-        *body.name,
-        *body.birthdate,
-        password_hash,
-    )
-    .execute(db::pool())
-    .await?;
+    loop {
+        match sqlx::query!(
+            "INSERT INTO users (id, email, name, birthdate, password_hash)
+                VALUES ($1, $2, $3, $4, $5)",
+            user_id.as_slice(),
+            body.email.as_str(),
+            *body.name,
+            *body.birthdate,
+            password_hash,
+        )
+        .execute(db::pool())
+        .await
+        {
+            Err(sqlx::Error::Database(error)) => match error.constraint() {
+                Some("users_pkey") => user_id.reroll()?,
+                Some("users_email_key") => break Ok(None),
+                _ => break Err(sqlx::Error::Database(error)),
+            },
+            result => break result.map(Some),
+        }
+    }?;
 
     Ok((
         StatusCode::OK,
