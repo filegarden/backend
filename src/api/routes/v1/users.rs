@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     api::{
         auth::hash_password,
-        validate::{Birthdate, UserEmail, UserName, UserPassword},
+        validation::{Birthdate, UserEmail, UserName, UserPassword},
         Json, Response,
     },
     db,

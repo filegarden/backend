@@ -16,7 +16,7 @@ use tower::ServiceExt;
 
 mod auth;
 pub mod routes;
-pub mod validate;
+pub mod validation;
 
 /// An API error.
 #[derive(Error, IntoStaticStr, Clone, PartialEq, Eq, Debug)]
