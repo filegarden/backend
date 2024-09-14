@@ -5,10 +5,10 @@ use std::str::FromStr;
 use derive_more::derive::{AsRef, Deref, Display};
 use idna::uts46::{self, Uts46};
 use lettre::Address;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use thiserror::Error;
-use time::{format_description::well_known::Iso8601, Date};
+use time::{format_description::well_known::Iso8601, macros::offset, Date, OffsetDateTime};
 
 /// A user's name.
 pub type UserName = BoundedString<1, 64>;
@@ -16,15 +16,79 @@ pub type UserName = BoundedString<1, 64>;
 /// A user's password in plain text.
 pub type UserPassword = BoundedString<8, 256>;
 
-/// Deserializes a string in ISO 8601 format (with only the date part) to a [`Date`].
-///
-/// # Errors
-///
-/// Fails if the input is an invalid ISO 8601 date.
-pub fn deserialize_date<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Date, D::Error> {
-    let str = <&str>::deserialize(deserializer)?;
+/// A user's birthdate.
+#[derive(
+    Deref,
+    AsRef,
+    Display,
+    DeserializeFromStr,
+    Serialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+)]
+#[as_ref(forward)]
+pub struct Birthdate(Date);
 
-    Date::parse(str, &Iso8601::DATE).map_err(de::Error::custom)
+/// The minimum years old a user can claim to be when setting their birthdate.
+const MIN_USER_AGE: i32 = 13;
+
+/// The maximum years old a user can claim to be when setting their birthdate.
+const MAX_USER_AGE: i32 = 150;
+
+/// An error constructing a [`Birthdate`].
+#[derive(Error, Clone, PartialEq, Eq, Debug)]
+pub enum BirthdateError {
+    /// The date is invalid.
+    #[error("date in birthdate is invalid")]
+    InvalidDate(#[from] time::error::Parse),
+
+    /// The birthdate is less than the minimum allowed.
+    #[error("birthdate too old; expected at least {MAX_USER_AGE} years ago")]
+    TooOld,
+
+    /// The birthdate is greater than the maximum allowed.
+    #[error("birthdate too young; expected at most {MIN_USER_AGE} years ago")]
+    TooYoung,
+}
+
+impl FromStr for Birthdate {
+    type Err = BirthdateError;
+
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        Date::parse(str, &Iso8601::DATE)?.try_into()
+    }
+}
+
+impl TryFrom<Date> for Birthdate {
+    type Error = BirthdateError;
+
+    fn try_from(date: Date) -> Result<Self, Self::Error> {
+        // Offset the time zone 24 hours ahead to be generous to all time zones, even though it can
+        // let users sign up a day before they turn 13.
+        let today = OffsetDateTime::now_utc().to_offset(offset!(+24)).date();
+
+        let max_birthdate = today
+            .replace_year(today.year() - MIN_USER_AGE)
+            .expect("year should be valid");
+
+        let min_birthdate = today
+            .replace_year(today.year() - MAX_USER_AGE)
+            .expect("year should be valid");
+
+        if date < min_birthdate {
+            Err(BirthdateError::TooOld)
+        } else if date > max_birthdate {
+            Err(BirthdateError::TooYoung)
+        } else {
+            Ok(Self(date))
+        }
+    }
 }
 
 /// A [`String`] newtype that guarantees its length is within a certain range.

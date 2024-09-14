@@ -8,11 +8,10 @@ use axum::http::StatusCode;
 use axum_macros::debug_handler;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
-use time::Date;
 
 use crate::{
     api::{
-        validate::{deserialize_date, UserEmail, UserName, UserPassword},
+        validate::{Birthdate, UserEmail, UserName, UserPassword},
         Json, Response,
     },
     db,
@@ -52,8 +51,7 @@ pub struct PostRequest {
     pub name: UserName,
 
     /// The user's birthdate, from a string in ISO 8601 date format.
-    #[serde(deserialize_with = "deserialize_date")]
-    pub birthdate: Date,
+    pub birthdate: Birthdate,
 
     /// The user's password in plain text.
     pub password: UserPassword,
@@ -74,8 +72,8 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         "INSERT INTO users (id, email, name, birthdate, password_hash) VALUES ($1, $2, $3, $4, $5)",
         user_id.as_slice(),
         body.email.as_str(),
-        body.name.as_str(),
-        body.birthdate,
+        *body.name,
+        *body.birthdate,
         password_hash,
     )
     .execute(db::pool())
