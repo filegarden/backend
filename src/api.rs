@@ -14,6 +14,7 @@ use strum_macros::IntoStaticStr;
 use thiserror::Error;
 use tower::ServiceExt;
 
+mod auth;
 pub mod routes;
 pub mod validate;
 
