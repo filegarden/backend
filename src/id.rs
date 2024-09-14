@@ -6,14 +6,16 @@ use std::{
 };
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use derive_more::derive::{AsRef, Deref};
+use derive_more::derive::{AsMut, AsRef, Deref, DerefMut};
 use rand::RngCore;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 /// An ID that can be deserialized from and serialized to `base64url` (without padding).
 #[derive(
     Deref,
+    DerefMut,
     AsRef,
+    AsMut,
     DeserializeFromStr,
     SerializeDisplay,
     Clone,
@@ -25,21 +27,32 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
     Debug,
 )]
 #[as_ref(forward)]
+#[as_mut(forward)]
 pub struct Id<T>(T);
 
-impl<T> Id<T>
-where
-    T: AsMut<[u8]> + Default,
-{
+impl<T: AsMut<[u8]> + Default> Id<T> {
     /// Generates a cryptographically secure pseudorandom ID.
     ///
     /// # Errors
     ///
     /// Fails if the CSPRNG fails to obtain random bytes.
-    pub(crate) fn generate() -> Result<Self, rand::Error> {
-        let mut bytes = T::default();
-        rand::thread_rng().try_fill_bytes(bytes.as_mut())?;
-        Ok(Self(bytes))
+    pub fn generate() -> Result<Self, rand::Error> {
+        let mut id = Self(T::default());
+        id.reroll()?;
+        Ok(id)
+    }
+}
+
+impl<T: AsMut<[u8]>> Id<T> {
+    /// Overwrites this ID with a new cryptographically secure pseudorandom ID, reusing the existing
+    /// memory.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the CSPRNG fails to obtain random bytes.
+    pub fn reroll(&mut self) -> Result<(), rand::Error> {
+        rand::thread_rng().try_fill_bytes(self.as_mut())?;
+        Ok(())
     }
 }
 
