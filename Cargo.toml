@@ -14,6 +14,7 @@ argon2 = "0.5"
 axum = "0.7"
 axum-macros = "0.4"
 base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
 derive_more = { version = "1", features = ["full"] }
 dotenvy = "0.15"
 idna = "1"
@@ -22,10 +23,9 @@ percent-encoding = "2"
 rand = "0.8"
 serde = "1"
 serde_with = "3"
-sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres", "time"] }
+sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres", "chrono"] }
 strum_macros = "0.26"
 thiserror = "1"
-time = { version = "0.3", features = ["serde", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 

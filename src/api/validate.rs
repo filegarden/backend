@@ -2,13 +2,13 @@
 
 use std::str::FromStr;
 
+use chrono::{Days, Months, NaiveDate, Utc};
 use derive_more::derive::{AsRef, Deref, Display};
 use idna::uts46::{self, Uts46};
 use lettre::Address;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use thiserror::Error;
-use time::{format_description::well_known::Iso8601, macros::offset, Date, OffsetDateTime};
 
 /// A user's name.
 pub type UserName = BoundedString<1, 64>;
@@ -33,20 +33,20 @@ pub type UserPassword = BoundedString<8, 256>;
     Debug,
 )]
 #[as_ref(forward)]
-pub struct Birthdate(Date);
+pub struct Birthdate(NaiveDate);
 
 /// The minimum years old a user can claim to be when setting their birthdate.
-const MIN_USER_AGE: i32 = 13;
+const MIN_USER_AGE: u32 = 13;
 
 /// The maximum years old a user can claim to be when setting their birthdate.
-const MAX_USER_AGE: i32 = 150;
+const MAX_USER_AGE: u32 = 150;
 
 /// An error constructing a [`Birthdate`].
 #[derive(Error, Clone, PartialEq, Eq, Debug)]
 pub enum BirthdateError {
     /// The date is invalid.
     #[error("date in birthdate is invalid")]
-    InvalidDate(#[from] time::error::Parse),
+    InvalidDate(#[from] chrono::format::ParseError),
 
     /// The birthdate is less than the minimum allowed.
     #[error("birthdate too old; expected at least {MAX_USER_AGE} years ago")]
@@ -61,25 +61,20 @@ impl FromStr for Birthdate {
     type Err = BirthdateError;
 
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        Date::parse(str, &Iso8601::DATE)?.try_into()
+        str.parse::<NaiveDate>()?.try_into()
     }
 }
 
-impl TryFrom<Date> for Birthdate {
+impl TryFrom<NaiveDate> for Birthdate {
     type Error = BirthdateError;
 
-    fn try_from(date: Date) -> Result<Self, Self::Error> {
-        // Offset the time zone 24 hours ahead to be generous to all time zones, even though it can
-        // let users sign up a day before they turn 13.
-        let today = OffsetDateTime::now_utc().to_offset(offset!(+24)).date();
+    fn try_from(date: NaiveDate) -> Result<Self, Self::Error> {
+        // Offset one day ahead to be generous to all time zones, even though it can let users sign
+        // up a day before they meet the minimum age.
+        let today = Utc::now().date_naive() + Days::new(1);
 
-        let max_birthdate = today
-            .replace_year(today.year() - MIN_USER_AGE)
-            .expect("year should be valid");
-
-        let min_birthdate = today
-            .replace_year(today.year() - MAX_USER_AGE)
-            .expect("year should be valid");
+        let min_birthdate = today - Months::new(12 * MAX_USER_AGE);
+        let max_birthdate = today - Months::new(12 * MIN_USER_AGE);
 
         if date < min_birthdate {
             Err(BirthdateError::TooOld)
