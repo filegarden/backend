@@ -30,14 +30,14 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 #[as_mut(forward)]
 pub struct Id<T>(T);
 
-impl<T: AsMut<[u8]> + Default> Id<T> {
+impl<const N: usize> Id<[u8; N]> {
     /// Generates a cryptographically secure pseudorandom ID.
     ///
     /// # Errors
     ///
     /// Fails if the CSPRNG fails to obtain random bytes.
     pub fn generate() -> Result<Self, rand::Error> {
-        let mut id = Self(T::default());
+        let mut id = Self([0; N]);
         id.reroll()?;
         Ok(id)
     }
