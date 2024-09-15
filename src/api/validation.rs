@@ -243,8 +243,8 @@ mod tests {
         let equivalent_emails = [
             "uSeR@examplé.com",
             "uSeR@example\u{0301}.com",
-            "uSeR@EXAMPLÉ.com",
-            "uSeR@EXAMPLE\u{0301}.com",
+            "uSeR@EXAMPLÉ.COM",
+            "uSeR@EXAMPLE\u{0301}.COM",
             "uSeR@xn--exampl-gva.com",
             "uSeR@xN--eXaMpL-gVa.CoM",
         ];
