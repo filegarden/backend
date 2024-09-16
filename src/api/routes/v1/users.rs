@@ -2,7 +2,9 @@
 
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
+use ring::digest::{digest, SHA256};
 use serde::{Deserialize, Serialize};
+use sqlx::Acquire;
 
 use crate::{
     api::{
@@ -11,13 +13,8 @@ use crate::{
         Json, Response,
     },
     db,
-    id::Id,
+    id::{NewUserId, Token},
 };
-
-/// The type to create new user IDs with.
-///
-/// Note that existing user IDs may not have the same size.
-type NewUserId = Id<[u8; 8]>;
 
 /// A `POST` request body for this API route.
 #[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -47,27 +44,60 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     let password_hash = hash_password(&body.password)?;
 
-    loop {
-        match sqlx::query!(
-            "INSERT INTO users (id, email, name, birthdate, password_hash)
-                VALUES ($1, $2, $3, $4, $5)",
+    let mut tx = db::pool().begin().await?;
+
+    let email_taken = sqlx::query!(
+        "SELECT 1 AS x FROM users
+            WHERE email = $1",
+        body.email.as_str(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .is_some();
+
+    if !email_taken {
+        loop {
+            // If this loop's query fails from an ID conflict, this savepoint is rolled back to
+            // rather than aborting the entire transaction.
+            let mut savepoint = tx.begin().await?;
+
+            match sqlx::query!(
+                "INSERT INTO users (id, name, birthdate, password_hash)
+                    VALUES ($1, $2, $3, $4)",
+                user_id.as_slice(),
+                *body.name,
+                *body.birthdate,
+                password_hash,
+            )
+            .execute(&mut *savepoint)
+            .await
+            {
+                Err(sqlx::Error::Database(error)) if error.constraint() == Some("users_pkey") => {
+                    user_id.reroll()?;
+                    continue;
+                }
+                result => result?,
+            };
+
+            savepoint.commit().await?;
+            break;
+        }
+
+        let email_verification_token = Token::generate()?;
+        let email_verification_token_hash = digest(&SHA256, email_verification_token.as_slice());
+
+        sqlx::query!(
+            "INSERT INTO unverified_emails (user_id, email, token_hash)
+                VALUES ($1, $2, $3)",
             user_id.as_slice(),
             body.email.as_str(),
-            *body.name,
-            *body.birthdate,
-            password_hash,
+            email_verification_token_hash.as_ref(),
         )
-        .execute(db::pool())
-        .await
-        {
-            Err(sqlx::Error::Database(error)) => match error.constraint() {
-                Some("users_pkey") => user_id.reroll()?,
-                Some("users_email_key") => break Ok(None),
-                _ => break Err(sqlx::Error::Database(error)),
-            },
-            result => break result.map(Some),
-        }
-    }?;
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
 
     Ok((
         StatusCode::OK,

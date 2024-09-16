@@ -10,6 +10,12 @@ use derive_more::derive::{AsMut, AsRef, Deref, DerefMut};
 use rand::RngCore;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
+/// The type to create new user IDs with.
+pub(crate) type NewUserId = Id<[u8; 8]>;
+
+/// A 128-byte token.
+pub(crate) type Token = Id<[u8; 128]>;
+
 /// An ID that can be deserialized from and serialized to `base64url` (without padding).
 #[derive(
     Deref,
@@ -28,7 +34,7 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 )]
 #[as_ref(forward)]
 #[as_mut(forward)]
-pub struct Id<T>(T);
+pub struct Id<T = Vec<u8>>(T);
 
 impl<const N: usize> Id<[u8; N]> {
     /// Generates a cryptographically secure pseudorandom ID.
