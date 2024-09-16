@@ -24,7 +24,7 @@ rand = "0.8"
 ring = "0.17"
 serde = "1"
 serde_with = "3"
-sqlx = { version = "0.8", features = ["macros", "runtime-tokio", "postgres", "chrono"] }
+sqlx = { version = "0.8", features = ["chrono", "macros", "postgres", "runtime-tokio"] }
 strum_macros = "0.26"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
