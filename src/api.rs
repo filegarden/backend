@@ -19,7 +19,7 @@ pub mod routes;
 pub mod validation;
 
 /// An API error.
-#[derive(Error, IntoStaticStr, Clone, PartialEq, Eq, Debug)]
+#[derive(Error, IntoStaticStr, Debug)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum Error {
@@ -27,13 +27,9 @@ pub enum Error {
     #[error("The request body is too large.")]
     ContentTooLarge,
 
-    /// A CSPRNG operation failed.
-    #[error("Couldn't securely invoke the server's random number generator. Please try again.")]
-    Csprng,
-
-    /// A database operation failed.
-    #[error("An internal database error occurred. Please try again.")]
-    Database,
+    /// An internal error occurred on the server which is unknown or expected never to happen.
+    #[error("An unexpected internal server error occurred. Please try again.")]
+    Internal(#[source] Box<dyn std::error::Error>),
 
     /// The `Content-Type` header isn't set to `application/json`.
     #[error("Header `Content-Type: application/json` must be set.")]
@@ -47,10 +43,6 @@ pub enum Error {
     #[error("The requested API route doesn't exist.")]
     RouteNotFound,
 
-    /// An error occurred which is unknown or expected never to happen.
-    #[error("An unexpected internal server error occurred: {0}")]
-    Unknown(String),
-
     /// The request body doesn't match the target type and its validation conditions.
     #[error("Invalid request data: {0}")]
     Validation(String),
@@ -61,12 +53,10 @@ impl Error {
     pub const fn status(&self) -> StatusCode {
         match self {
             Self::ContentTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
-            Self::Csprng => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Database => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::JsonContentType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             Self::JsonSyntax(_) => StatusCode::BAD_REQUEST,
             Self::RouteNotFound => StatusCode::NOT_FOUND,
-            Self::Unknown(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Validation(_) => StatusCode::BAD_REQUEST,
         }
     }
@@ -78,14 +68,14 @@ impl Error {
 }
 
 impl From<rand::Error> for Error {
-    fn from(_: rand::Error) -> Self {
-        Self::Csprng
+    fn from(error: rand::Error) -> Self {
+        Self::Internal(error.into())
     }
 }
 
 impl From<sqlx::Error> for Error {
-    fn from(_: sqlx::Error) -> Self {
-        Self::Database
+    fn from(error: sqlx::Error) -> Self {
+        Self::Internal(error.into())
     }
 }
 
@@ -105,7 +95,7 @@ impl From<JsonRejection> for Error {
                 None => error.body_text(),
             }),
             JsonRejection::MissingJsonContentType(_) => Self::JsonContentType,
-            error => Self::Unknown(error.body_text()),
+            error => Self::Internal(error.into()),
         }
     }
 }
