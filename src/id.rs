@@ -14,7 +14,7 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 pub(crate) type NewUserId = Id<[u8; 8]>;
 
 /// A 128-byte token.
-pub(crate) type Token = Id<[u8; 128]>;
+pub type Token = Id<[u8; 128]>;
 
 /// An ID that can be deserialized from and serialized to `base64url` (without padding).
 #[derive(
