@@ -1,11 +1,11 @@
 //! Utilities for sending emails.
 
-use std::sync::LazyLock;
+use std::{env::VarError, sync::LazyLock};
 
 use askama::Template;
 use lettre::{
     message::{Mailbox, MultiPart},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{authentication::Credentials, extension::ClientId},
     AsyncSmtpTransport, Message, Tokio1Executor,
 };
 
@@ -35,10 +35,23 @@ pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLoc
     let password = dotenvy::var("SMTP_PASSWORD")
         .expect("environment variable `SMTP_PASSWORD` should be a valid string");
 
-    AsyncSmtpTransport::<Tokio1Executor>::relay(&hostname)
+    let mut smtp_transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&hostname)
         .expect("SMTP relay couldn't be initialized")
-        .credentials(Credentials::new(username, password))
-        .build()
+        .credentials(Credentials::new(username, password));
+
+    match dotenvy::var("SMTP_HELO_DOMAIN") {
+        // If the environment variable is unset, let `lettre` default to using the OS hostname.
+        Err(dotenvy::Error::EnvVar(VarError::NotPresent)) => (),
+
+        helo_domain => {
+            let helo_domain = helo_domain
+                .expect("environment variable `SMTP_HELO_DOMAIN` should be a valid string if set");
+
+            smtp_transport = smtp_transport.hello_name(ClientId::Domain(helo_domain));
+        }
+    }
+
+    smtp_transport.build()
 });
 
 /// The mailbox automated emails are sent from.
