@@ -1,7 +1,10 @@
 //! An HTTP resource representing the set of all user accounts.
 
+use std::ops::Deref;
+
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
+use lettre::{message::Mailbox, AsyncTransport};
 use ring::digest::{digest, SHA256};
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
@@ -13,7 +16,9 @@ use crate::{
         Json, Response,
     },
     db,
+    email::{MessageTemplate, VerificationMessage, MAILER},
     id::{NewUserId, Token},
+    WEBSITE_ORIGIN,
 };
 
 /// A `POST` request body for this API route.
@@ -95,6 +100,20 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         )
         .execute(&mut *tx)
         .await?;
+
+        let email = VerificationMessage {
+            email: body.email.as_str(),
+            verification_url: &format!(
+                "{}/users/{}/verify?token={}",
+                *WEBSITE_ORIGIN, user_id, email_verification_token
+            ),
+        }
+        .to(Mailbox::new(
+            Some(body.name.to_string()),
+            body.email.deref().clone(),
+        ));
+
+        tokio::spawn(MAILER.send(email));
     }
 
     tx.commit().await?;

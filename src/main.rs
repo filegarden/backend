@@ -8,6 +8,7 @@ use tokio::net::TcpListener;
 pub mod api;
 mod content;
 mod db;
+mod email;
 pub mod id;
 mod percent_encoding;
 mod response;
