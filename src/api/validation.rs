@@ -57,6 +57,13 @@ pub enum BirthdateError {
     TooYoung,
 }
 
+impl Birthdate {
+    /// Consumes the [`Birthdate`], returning the wrapped [`NaiveDate`].
+    pub fn into_inner(self) -> NaiveDate {
+        self.0
+    }
+}
+
 impl FromStr for Birthdate {
     type Err = BirthdateError;
 
@@ -103,6 +110,13 @@ impl TryFrom<NaiveDate> for Birthdate {
 #[as_ref(forward)]
 #[serde(try_from = "String")]
 pub struct BoundedString<const MIN: usize, const MAX: usize>(String);
+
+impl<const MIN: usize, const MAX: usize> BoundedString<MIN, MAX> {
+    /// Consumes the [`BoundedString`], returning the wrapped [`String`].
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
 
 /// An error constructing a [`BoundedString`].
 #[derive(Error, Clone, Copy, PartialEq, Eq, Debug)]
@@ -153,6 +167,11 @@ impl UserEmail {
     /// Gets a reference to the email address string.
     pub fn as_str(&self) -> &str {
         self.as_ref()
+    }
+
+    /// Consumes the [`UserEmail`], returning the wrapped [`Address`].
+    pub fn into_inner(self) -> Address {
+        self.0
     }
 }
 
