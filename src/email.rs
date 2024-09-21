@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use askama::Template;
 use lettre::{
     message::{Mailbox, MultiPart},
-    transport::smtp::{authentication::Credentials, extension::ClientId},
+    transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, Message, Tokio1Executor,
 };
 
@@ -28,12 +28,12 @@ impl MessageTemplate for VerificationMessage<'_> {
 
 /// The SMTP transport used to send automated emails.
 pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLock::new(|| {
-    let hostname =
-        dotenvy::var("SMTP_HOSTNAME").expect("environment variable `SMTP_HOSTNAME` should be set");
-    let username =
-        dotenvy::var("SMTP_USERNAME").expect("environment variable `SMTP_USERNAME` should be set");
-    let password =
-        dotenvy::var("SMTP_PASSWORD").expect("environment variable `SMTP_PASSWORD` should be set");
+    let hostname = dotenvy::var("SMTP_HOSTNAME")
+        .expect("environment variable `SMTP_HOSTNAME` should be a valid string");
+    let username = dotenvy::var("SMTP_USERNAME")
+        .expect("environment variable `SMTP_USERNAME` should be a valid string");
+    let password = dotenvy::var("SMTP_PASSWORD")
+        .expect("environment variable `SMTP_PASSWORD` should be a valid string");
 
     AsyncSmtpTransport::<Tokio1Executor>::relay(&hostname)
         .expect("SMTP relay couldn't be initialized")
@@ -44,7 +44,7 @@ pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLoc
 /// The mailbox automated emails are sent from.
 static FROM_MAILBOX: LazyLock<Mailbox> = LazyLock::new(|| {
     dotenvy::var("FROM_MAILBOX")
-        .expect("environment variable `FROM_MAILBOX` should be set")
+        .expect("environment variable `FROM_MAILBOX` should be a valid string")
         .parse()
         .expect("environment variable `FROM_MAILBOX` should be a valid mailbox")
 });

@@ -17,12 +17,14 @@ mod website;
 
 /// The URI origin for user-uploaded content.
 pub(crate) static CONTENT_ORIGIN: LazyLock<String> = LazyLock::new(|| {
-    dotenvy::var("CONTENT_ORIGIN").expect("environment variable `CONTENT_ORIGIN` should be set")
+    dotenvy::var("CONTENT_ORIGIN")
+        .expect("environment variable `CONTENT_ORIGIN` should be a valid string")
 });
 
 /// The URI origin for the website.
 pub(crate) static WEBSITE_ORIGIN: LazyLock<String> = LazyLock::new(|| {
-    dotenvy::var("WEBSITE_ORIGIN").expect("environment variable `WEBSITE_ORIGIN` should be set")
+    dotenvy::var("WEBSITE_ORIGIN")
+        .expect("environment variable `WEBSITE_ORIGIN` should be a valid string")
 });
 
 /// # Errors
