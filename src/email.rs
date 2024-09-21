@@ -3,6 +3,7 @@
 use std::{env::VarError, sync::LazyLock};
 
 use askama::Template;
+use html2text::render::text_renderer::TrivialDecorator;
 use lettre::{
     message::{Mailbox, MultiPart},
     transport::smtp::{authentication::Credentials, extension::ClientId},
@@ -70,7 +71,9 @@ pub(crate) trait MessageTemplate: Template {
     /// Generates a multipart HTML and plain text body for the email message template.
     fn to(&self, mailbox: Mailbox) -> Message {
         let html = self.to_string();
-        let plain = html2text::from_read(html.as_bytes(), usize::MAX);
+        let plain = html2text::config::with_decorator(TrivialDecorator::new())
+            .string_from_read(html.as_bytes(), usize::MAX)
+            .expect("message HTML should be convertible to text");
 
         Message::builder()
             .from(FROM_MAILBOX.clone())
