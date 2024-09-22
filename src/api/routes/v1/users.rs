@@ -1,7 +1,5 @@
 //! An HTTP resource representing the set of all user accounts.
 
-use std::ops::Deref;
-
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
 use lettre::{message::Mailbox, AsyncTransport};
@@ -116,7 +114,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
             ),
         }
         .to(Mailbox::new(
-            Some(body.name.to_string()),
+            Some(body.name.into_inner()),
             (*body.email).clone(),
         ));
 
@@ -126,6 +124,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     tx.commit().await?;
 
     // To prevent user enumeration, send this same response whether the user was created or not.
+    Ok((StatusCode::OK, Json(PostResponse { email: body.email })))
 }
 
 /// A `POST` response body for this API route.
@@ -134,7 +133,4 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 pub struct PostResponse {
     /// The user's email address.
     pub email: UserEmail,
-
-    /// The user's name.
-    pub name: UserName,
 }
