@@ -123,7 +123,8 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     tx.commit().await?;
 
-    // To prevent user enumeration, send this same response whether the user was created or not.
+    // To prevent user enumeration, send this same successful response with minimal information
+    // whether or not the user was created.
     Ok((StatusCode::OK, Json(PostResponse { email: body.email })))
 }
 
