@@ -27,6 +27,21 @@ impl MessageTemplate for VerificationMessage<'_> {
     }
 }
 
+/// An email template informing a user that someone tried to sign up with their email despite them
+/// already having an account.
+#[derive(Template)]
+#[template(path = "email/email_taken.html")]
+pub(crate) struct EmailTakenMessage<'a> {
+    /// The email address used to try to sign up.
+    pub(crate) email: &'a str,
+}
+
+impl MessageTemplate for EmailTakenMessage<'_> {
+    fn subject(&self) -> String {
+        "Sign-up failed for existing account - File Garden".into()
+    }
+}
+
 /// The SMTP transport used to send automated emails.
 pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLock::new(|| {
     let hostname = dotenvy::var("SMTP_HOSTNAME")

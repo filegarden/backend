@@ -16,7 +16,7 @@ use crate::{
         Json, Response,
     },
     db,
-    email::{MessageTemplate, VerificationMessage, MAILER},
+    email::{EmailTakenMessage, MessageTemplate, VerificationMessage, MAILER},
     id::{NewUserId, Token},
     WEBSITE_ORIGIN,
 };
@@ -51,16 +51,23 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     let mut tx = db::pool().begin().await?;
 
-    let email_taken = sqlx::query!(
-        "SELECT 1 AS x FROM users
+    let existing_user = sqlx::query!(
+        "SELECT name FROM users
             WHERE email = $1",
         body.email.as_str(),
     )
     .fetch_optional(&mut *tx)
-    .await?
-    .is_some();
+    .await?;
 
-    if !email_taken {
+    if let Some(user) = existing_user {
+        let email = EmailTakenMessage {
+            email: body.email.as_str(),
+        }
+        // Send to the true name of the existing user, not the new requested name.
+        .to(Mailbox::new(Some(user.name), (*body.email).clone()));
+
+        tokio::spawn(MAILER.send(email));
+    } else {
         loop {
             // If this loop's query fails from an ID conflict, this savepoint is rolled back to
             // rather than aborting the entire transaction.
@@ -110,7 +117,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         }
         .to(Mailbox::new(
             Some(body.name.to_string()),
-            body.email.deref().clone(),
+            (*body.email).clone(),
         ));
 
         tokio::spawn(MAILER.send(email));
@@ -118,13 +125,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     tx.commit().await?;
 
-    Ok((
-        StatusCode::OK,
-        Json(PostResponse {
-            email: body.email,
-            name: body.name,
-        }),
-    ))
+    // To prevent user enumeration, send this same response whether the user was created or not.
 }
 
 /// A `POST` response body for this API route.
