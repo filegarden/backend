@@ -1,12 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT 1 AS x FROM users\n            WHERE email = $1",
+  "query": "SELECT name FROM users\n            WHERE email = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "x",
-        "type_info": "Int4"
+        "name": "name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -20,8 +20,8 @@
       ]
     },
     "nullable": [
-      null
+      false
     ]
   },
-  "hash": "54c8f9bbc9a276335eda8253c323754c7bd312708b37a0b86c09067febf71caa"
+  "hash": "728bc87b890479cb568ab5e04810668155d401853dc233f1845c70311c355ef8"
 }
