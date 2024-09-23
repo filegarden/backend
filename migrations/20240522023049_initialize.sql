@@ -14,7 +14,8 @@ CREATE TABLE unverified_emails (
     created_at timestamptz NOT NULL DEFAULT now(),
     user_id bytea PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
     email citext NOT NULL,
-    token_hash bytea NOT NULL
+    token_hash bytea NOT NULL,
+    code text NOT NULL
 );
 
 CREATE TABLE password_resets (
