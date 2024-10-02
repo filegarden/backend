@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
-use lettre::{message::Mailbox, AsyncTransport};
+use lettre::message::Mailbox;
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 
@@ -10,7 +10,7 @@ use crate::{
     api::{validation::UserEmail, Json, Response},
     crypto::hash_without_salt,
     db,
-    email::{EmailTakenMessage, MessageTemplate, VerificationMessage, MAILER},
+    email::{EmailTakenMessage, MessageTemplate, SendMessage, VerificationMessage},
     id::Token,
     WEBSITE_ORIGIN,
 };
@@ -43,12 +43,11 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     .await?;
 
     if let Some(user) = existing_user {
-        let email = EmailTakenMessage {
+        EmailTakenMessage {
             email: body.email.as_str(),
         }
-        .to(Mailbox::new(Some(user.name), (*body.email).clone()));
-
-        tokio::spawn(MAILER.send(email));
+        .to(Mailbox::new(Some(user.name), (*body.email).clone()))
+        .send();
     } else {
         sqlx::query!(
             "DELETE FROM unverified_emails
@@ -89,13 +88,12 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
             break;
         }
 
-        let email = VerificationMessage {
+        VerificationMessage {
             email: body.email.as_str(),
             verification_url: &format!("{}/sign-up?token={}", *WEBSITE_ORIGIN, token),
         }
-        .to(Mailbox::new(None, (*body.email).clone()));
-
-        tokio::spawn(MAILER.send(email));
+        .to(Mailbox::new(None, (*body.email).clone()))
+        .send();
     }
 
     tx.commit().await?;

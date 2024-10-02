@@ -7,7 +7,7 @@ use html2text::render::text_renderer::TrivialDecorator;
 use lettre::{
     message::{Mailbox, MultiPart},
     transport::smtp::{authentication::Credentials, extension::ClientId},
-    AsyncSmtpTransport, Message, Tokio1Executor,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 
 /// An email template asking a user to verify their email.
@@ -42,34 +42,6 @@ impl MessageTemplate for EmailTakenMessage<'_> {
     }
 }
 
-/// The SMTP transport used to send automated emails.
-pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLock::new(|| {
-    let hostname = dotenvy::var("SMTP_HOSTNAME")
-        .expect("environment variable `SMTP_HOSTNAME` should be a valid string");
-    let username = dotenvy::var("SMTP_USERNAME")
-        .expect("environment variable `SMTP_USERNAME` should be a valid string");
-    let password = dotenvy::var("SMTP_PASSWORD")
-        .expect("environment variable `SMTP_PASSWORD` should be a valid string");
-
-    let mut smtp_transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&hostname)
-        .expect("SMTP relay couldn't be initialized")
-        .credentials(Credentials::new(username, password));
-
-    match dotenvy::var("SMTP_HELO_DOMAIN") {
-        // If the environment variable is unset, let `lettre` default to using the OS hostname.
-        Err(dotenvy::Error::EnvVar(VarError::NotPresent)) => {}
-
-        helo_domain => {
-            let helo_domain = helo_domain
-                .expect("environment variable `SMTP_HELO_DOMAIN` should be a valid string if set");
-
-            smtp_transport = smtp_transport.hello_name(ClientId::Domain(helo_domain));
-        }
-    }
-
-    smtp_transport.build()
-});
-
 /// The mailbox automated emails are sent from.
 static FROM_MAILBOX: LazyLock<Mailbox> = LazyLock::new(|| {
     dotenvy::var("FROM_MAILBOX")
@@ -96,5 +68,48 @@ pub(crate) trait MessageTemplate: Template {
             .subject(self.subject())
             .multipart(MultiPart::alternative_plain_html(plain, html))
             .expect("message should be valid")
+    }
+}
+
+/// The SMTP transport used to send automated emails.
+static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLock::new(|| {
+    let hostname = dotenvy::var("SMTP_HOSTNAME")
+        .expect("environment variable `SMTP_HOSTNAME` should be a valid string");
+    let username = dotenvy::var("SMTP_USERNAME")
+        .expect("environment variable `SMTP_USERNAME` should be a valid string");
+    let password = dotenvy::var("SMTP_PASSWORD")
+        .expect("environment variable `SMTP_PASSWORD` should be a valid string");
+
+    let mut smtp_transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&hostname)
+        .expect("SMTP relay couldn't be initialized")
+        .credentials(Credentials::new(username, password));
+
+    match dotenvy::var("SMTP_HELO_DOMAIN") {
+        // If the environment variable is unset, let `lettre` default to using the OS hostname.
+        Err(dotenvy::Error::EnvVar(VarError::NotPresent)) => {}
+
+        helo_domain => {
+            let helo_domain = helo_domain
+                .expect("environment variable `SMTP_HELO_DOMAIN` should be a valid string if set");
+
+            smtp_transport = smtp_transport.hello_name(ClientId::Domain(helo_domain));
+        }
+    }
+
+    smtp_transport.build()
+});
+
+/// A trait for sending messages using the SMTP configuration from `.env`.
+pub(crate) trait SendMessage {
+    /// Sends the message in the background.
+    ///
+    /// Errors are ignored so they can't propagate to end users. Otherwise, users could tell if an
+    /// email sent successfully or not, which can allow for user enumeration in some circumstances.
+    fn send(self);
+}
+
+impl SendMessage for Message {
+    fn send(self) {
+        tokio::spawn(MAILER.send(self));
     }
 }
