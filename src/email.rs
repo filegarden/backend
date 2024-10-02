@@ -57,7 +57,7 @@ pub(crate) static MAILER: LazyLock<AsyncSmtpTransport<Tokio1Executor>> = LazyLoc
 
     match dotenvy::var("SMTP_HELO_DOMAIN") {
         // If the environment variable is unset, let `lettre` default to using the OS hostname.
-        Err(dotenvy::Error::EnvVar(VarError::NotPresent)) => (),
+        Err(dotenvy::Error::EnvVar(VarError::NotPresent)) => {}
 
         helo_domain => {
             let helo_domain = helo_domain
