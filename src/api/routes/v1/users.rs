@@ -1,22 +1,19 @@
-//! An HTTP resource representing the set of all user accounts.
+//! The set of all users.
 
 use axum::http::StatusCode;
 use axum_macros::debug_handler;
-use lettre::{message::Mailbox, AsyncTransport};
-use ring::digest::{digest, SHA256};
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 
 use crate::{
     api::{
-        auth::hash_password,
-        validation::{Birthdate, UserEmail, UserName, UserPassword},
+        self,
+        validation::{Birthdate, EmailVerificationCode, UserEmail, UserName, UserPassword},
         Json, Response,
     },
+    crypto::{hash_with_salt, verify_hash},
     db,
-    email::{EmailTakenMessage, MessageTemplate, VerificationMessage, MAILER},
-    id::{NewUserId, Token},
-    WEBSITE_ORIGIN,
+    id::NewUserId,
 };
 
 /// A `POST` request body for this API route.
@@ -25,6 +22,9 @@ use crate::{
 pub struct PostRequest {
     /// The user's email address.
     pub email: UserEmail,
+
+    /// The verification code for the user's email address.
+    pub email_verification_code: EmailVerificationCode,
 
     /// The user's name.
     pub name: UserName,
@@ -36,102 +36,72 @@ pub struct PostRequest {
     pub password: UserPassword,
 }
 
-/// Creates a new user and sends them an account verification email.
+/// Creates a new user.
 ///
 /// # Errors
 ///
 /// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let mut user_id = NewUserId::generate()?;
-
-    let password_hash = hash_password(&body.password)?;
-
     let mut tx = db::pool().begin().await?;
 
-    let existing_user = sqlx::query!(
-        "SELECT name FROM users
-            WHERE email = $1",
+    let does_code_match = sqlx::query!(
+        "DELETE FROM unverified_emails
+            WHERE user_id IS NULL AND email = $1
+            RETURNING code_hash",
         body.email.as_str(),
     )
     .fetch_optional(&mut *tx)
-    .await?;
+    .await?
+    .and_then(|unverified_email| unverified_email.code_hash)
+    .is_some_and(|code_hash| verify_hash(&body.email_verification_code, &code_hash));
 
-    if let Some(user) = existing_user {
-        let email = EmailTakenMessage {
-            email: body.email.as_str(),
-        }
-        // Send to the true name of the existing user, not the new requested name.
-        .to(Mailbox::new(Some(user.name), (*body.email).clone()));
+    if !does_code_match {
+        return Err(api::Error::EmailVerificationCodeWrong);
+    }
 
-        tokio::spawn(MAILER.send(email));
-    } else {
-        loop {
-            // If this loop's query fails from an ID conflict, this savepoint is rolled back to
-            // rather than aborting the entire transaction.
-            let mut savepoint = tx.begin().await?;
+    let mut user_id = NewUserId::generate()?;
 
-            match sqlx::query!(
-                "INSERT INTO users (id, name, birthdate, password_hash)
-                    VALUES ($1, $2, $3, $4)",
-                user_id.as_slice(),
-                *body.name,
-                *body.birthdate,
-                password_hash,
-            )
-            .execute(&mut *savepoint)
-            .await
-            {
-                Err(sqlx::Error::Database(error)) if error.constraint() == Some("users_pkey") => {
-                    user_id.reroll()?;
-                    continue;
-                }
-                result => result?,
-            };
+    let password_hash = hash_with_salt(&body.password)?;
 
-            savepoint.commit().await?;
-            break;
-        }
+    loop {
+        // If this loop's query fails from an ID conflict, this savepoint is rolled back to
+        // rather than aborting the entire transaction.
+        let mut savepoint = tx.begin().await?;
 
-        let email_verification_token = Token::generate()?;
-        let email_verification_token_hash = digest(&SHA256, email_verification_token.as_slice());
-
-        sqlx::query!(
-            "INSERT INTO unverified_emails (user_id, email, token_hash)
-                VALUES ($1, $2, $3)",
+        match sqlx::query!(
+            "INSERT INTO users (id, email, name, birthdate, password_hash)
+                VALUES ($1, $2, $3, $4, $5)",
             user_id.as_slice(),
             body.email.as_str(),
-            email_verification_token_hash.as_ref(),
+            *body.name,
+            *body.birthdate,
+            password_hash,
         )
-        .execute(&mut *tx)
-        .await?;
+        .execute(&mut *savepoint)
+        .await
+        {
+            Err(sqlx::Error::Database(error)) if error.constraint() == Some("users_pkey") => {
+                user_id.reroll()?;
+                continue;
+            }
+            result => result?,
+        };
 
-        let email = VerificationMessage {
-            email: body.email.as_str(),
-            verification_url: &format!(
-                "{}/users/{}/verify?token={}",
-                *WEBSITE_ORIGIN, user_id, email_verification_token
-            ),
-        }
-        .to(Mailbox::new(
-            Some(body.name.into_inner()),
-            (*body.email).clone(),
-        ));
-
-        tokio::spawn(MAILER.send(email));
+        savepoint.commit().await?;
+        break;
     }
 
     tx.commit().await?;
 
-    // To prevent user enumeration, send this same successful response with minimal information
-    // whether or not the user was created.
-    Ok((StatusCode::OK, Json(PostResponse { email: body.email })))
+    // TODO: Set `Location` header.
+    Ok((StatusCode::CREATED, Json(PostResponse { id: user_id })))
 }
 
 /// A `POST` response body for this API route.
 #[derive(Serialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
-    /// The user's email address.
-    pub email: UserEmail,
+    /// The user's ID.
+    pub id: NewUserId,
 }

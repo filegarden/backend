@@ -7,6 +7,7 @@ use tokio::net::TcpListener;
 
 pub mod api;
 mod content;
+mod crypto;
 mod db;
 mod email;
 pub mod id;

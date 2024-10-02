@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM unverified_emails\n            WHERE user_id IS NULL AND email = $1\n            RETURNING code_hash",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code_hash",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        }
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f7560c0a670150eb8c8802e274f4b7b54a16ac284e7ffd977321834ccf391de4"
+}

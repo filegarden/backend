@@ -16,6 +16,9 @@ pub type UserName = BoundedString<1, 64>;
 /// A user's password in plain text.
 pub type UserPassword = BoundedString<8, 256>;
 
+/// An unverified email's verification code in plain text.
+pub type EmailVerificationCode = BoundedString<6, 6>;
+
 /// A user's birthdate.
 #[derive(
     Deref,
