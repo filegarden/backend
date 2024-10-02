@@ -190,10 +190,6 @@ pub enum UserEmailError {
     /// use IP addresses in emails; strict mail agents don't even allow it.
     #[error("IP addresses not allowed in email address")]
     IpAddr,
-
-    /// The domain name has no TLD. This is likely a typo or a user trying to exploit `localhost`.
-    #[error("domain in email address is missing a TLD")]
-    NoTld,
 }
 
 impl FromStr for UserEmail {
@@ -206,10 +202,6 @@ impl FromStr for UserEmail {
 
         if domain.starts_with('[') {
             return Err(UserEmailError::IpAddr);
-        }
-
-        if !domain.contains('.') {
-            return Err(UserEmailError::NoTld);
         }
 
         let (domain, domain_result) = Uts46::new().to_user_interface(
@@ -246,13 +238,23 @@ mod tests {
             "user@example-.com",
             "user@[127.0.0.1]",
             "user@[::1]",
-            "user@examplecom",
         ];
 
         for email in invalid_emails {
             email
                 .parse::<UserEmail>()
                 .expect_err("user email should be invalid");
+        }
+    }
+
+    #[test]
+    fn weird_user_emails_allowed() {
+        let valid_emails = ["user-of-a-mail-server-on-a-tld@com"];
+
+        for email in valid_emails {
+            email
+                .parse::<UserEmail>()
+                .expect("user email should be valid");
         }
     }
 
