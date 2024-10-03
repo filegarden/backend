@@ -23,8 +23,10 @@ idna = "1"
 lettre = { version = "0.11", features = ["serde", "tokio1", "tokio1-native-tls"] }
 percent-encoding = "2"
 rand = "0.8"
+reqwest = { version = "0.12", features = ["brotli", "deflate", "gzip", "json", "zstd"] }
 ring = "0.17"
 serde = "1"
+serde_json = "1"
 serde_with = "3"
 sqlx = { version = "0.8", features = ["chrono", "macros", "postgres", "runtime-tokio"] }
 strum_macros = "0.26"

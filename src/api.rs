@@ -17,6 +17,7 @@ use strum_macros::IntoStaticStr;
 use thiserror::Error;
 use tower::ServiceExt;
 
+mod captcha;
 pub mod routes;
 pub mod validation;
 
@@ -28,6 +29,10 @@ pub enum Error {
     /// The request body is too large.
     #[error("The request body is too large.")]
     BodyTooLarge,
+
+    /// CAPTCHA verification failed.
+    #[error("CAPTCHA verification failed.")]
+    CaptchaFailed,
 
     /// An email verification code specified in the request is incorrect.
     #[error("Incorrect email verification code.")]
@@ -70,6 +75,7 @@ impl Error {
     pub const fn status(&self) -> StatusCode {
         match self {
             Self::BodyTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+            Self::CaptchaFailed => StatusCode::FORBIDDEN,
             Self::EmailVerificationCodeWrong => StatusCode::FORBIDDEN,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidBodyData(_) => StatusCode::BAD_REQUEST,
@@ -130,6 +136,12 @@ impl From<sqlx::Error> for Error {
 
 impl From<rand::Error> for Error {
     fn from(error: rand::Error) -> Self {
+        Self::Internal(error.into())
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
         Self::Internal(error.into())
     }
 }
