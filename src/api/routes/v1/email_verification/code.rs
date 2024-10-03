@@ -74,9 +74,9 @@ pub async fn post(
 #[derive(Serialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
-    /// The user's email address.
+    /// The email address to verify.
     pub email: String,
 
-    /// The user's email verification code.
+    /// The new email verification code.
     pub code: String,
 }
