@@ -64,6 +64,6 @@ pub(crate) fn generate_short_code() -> String {
     Uniform::from(0..SHORT_CODE_CHARS.len())
         .sample_iter(rand::thread_rng())
         .take(SHORT_CODE_LENGTH)
-        .map(|i| SHORT_CODE_CHARS.get(i).expect("index should be in bounds"))
+        .map(|i| SHORT_CODE_CHARS[i])
         .collect()
 }

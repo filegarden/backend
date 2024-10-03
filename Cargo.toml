@@ -46,7 +46,6 @@ rust.missing_docs = "warn"
 
 # Enforces panics are explicit and justified.
 clippy.assertions_on_result_states = "warn"
-clippy.indexing_slicing = "warn"
 clippy.missing_assert_message = "warn"
 clippy.unchecked_duration_subtraction = "warn"
 clippy.unwrap_used = "warn"

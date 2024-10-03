@@ -48,7 +48,5 @@ pub(super) async fn handle(request: Request) -> Response {
 fn host_from_origin(origin: &str) -> &str {
     let host_index = origin.find("//").expect("origin should contain \"//\"") + 2;
 
-    origin
-        .get(host_index..)
-        .expect("origin should be sliceable at the index after \"//\"")
+    &origin[host_index..]
 }
