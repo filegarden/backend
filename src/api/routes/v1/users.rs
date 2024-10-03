@@ -65,8 +65,8 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     let password_hash = hash_with_salt(&body.password)?;
 
     loop {
-        // If this loop's query fails from an ID conflict, this savepoint is rolled back to
-        // rather than aborting the entire transaction.
+        // If this loop's query fails from an ID conflict, this savepoint is rolled back to rather
+        // than aborting the entire transaction.
         let mut savepoint = tx.begin().await?;
 
         match sqlx::query!(
