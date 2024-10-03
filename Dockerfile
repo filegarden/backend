@@ -27,7 +27,7 @@ END
 
 # The final image will be a lean Alpine instance with only the final binary from
 # the above build image copied into it.
-FROM alpine AS final
+FROM alpine:3 AS final
 
 # Create a non-privileged user for the app to run under.
 RUN adduser \
