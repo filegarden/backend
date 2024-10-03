@@ -34,6 +34,9 @@ pub enum Error {
     EmailVerificationCodeWrong,
 
     /// An internal error occurred on the server which is unknown or expected never to happen.
+    ///
+    /// For security, this must not expose error details to clients since there's no way to tell if
+    /// an arbitrary error is safe to expose.
     #[error("An unexpected internal server error occurred. Please try again.")]
     Internal(#[source] Box<dyn std::error::Error>),
 
