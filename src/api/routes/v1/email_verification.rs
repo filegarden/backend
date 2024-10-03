@@ -7,8 +7,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 
 use crate::{
-    api::{validation::UserEmail, Json, Response},
-    crypto::hash_without_salt,
+    api::{
+        self,
+        validation::{EmailVerificationCode, UserEmail},
+        Json, Query, Response,
+    },
+    crypto::{hash_without_salt, verify_hash},
     db,
     email::{EmailTakenMessage, MessageTemplate, SendMessage, VerificationMessage},
     id::Token,
@@ -16,6 +20,78 @@ use crate::{
 };
 
 pub mod code;
+
+/// A `GET` request query for this API route.
+#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum GetQuery {
+    /// Identifies an email verification request by its verification token.
+    Token {
+        /// The email verification token.
+        token: Token,
+    },
+
+    /// Identifies an email verification request by its email and verification code.
+    EmailAndCode {
+        /// The email address to verify.
+        email: UserEmail,
+
+        /// The email verification code.
+        code: EmailVerificationCode,
+    },
+}
+
+/// Checks an existing an email verification request.
+///
+/// # Errors
+///
+/// See [`crate::api::Error`].
+#[debug_handler]
+pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
+    let email = match query {
+        GetQuery::Token { token } => {
+            let token_hash = hash_without_salt(&token);
+
+            let Some(unverified_email) = sqlx::query!(
+                "SELECT email FROM unverified_emails
+                    WHERE token_hash = $1 AND user_id IS NULL",
+                token_hash.as_ref(),
+            )
+            .fetch_optional(db::pool())
+            .await?
+            else {
+                return Err(api::Error::ResourceNotFound);
+            };
+
+            unverified_email.email
+        }
+
+        GetQuery::EmailAndCode { email, code } => {
+            let Some(unverified_email) = sqlx::query!(
+                r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
+                    WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
+                email.as_str(),
+            )
+            .fetch_optional(db::pool())
+            .await?
+            .filter(|unverified_email| verify_hash(&code, &unverified_email.code_hash)) else {
+                return Err(api::Error::ResourceNotFound);
+            };
+
+            unverified_email.email
+        }
+    };
+
+    Ok((StatusCode::OK, Json(GetResponse { email })))
+}
+
+/// A `GET` response body for this API route.
+#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GetResponse {
+    /// The email address to verify.
+    pub email: String,
+}
 
 /// A `POST` request body for this API route.
 #[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -106,6 +182,6 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 #[derive(Serialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
-    /// The normalized email address to verify.
+    /// The email address to verify.
     pub email: UserEmail,
 }

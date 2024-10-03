@@ -2,7 +2,10 @@
 
 use std::sync::LazyLock;
 
-use axum::{routing::post, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use crate::api;
 
@@ -18,7 +21,7 @@ pub(super) static ROUTER: LazyLock<Router> = LazyLock::new(|| {
     Router::new()
         .route(
             "/api/v1/email-verification",
-            post(v1::email_verification::post),
+            get(v1::email_verification::get).post(v1::email_verification::post),
         )
         .route(
             "/api/v1/email-verification/code",
