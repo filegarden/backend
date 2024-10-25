@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM unverified_emails\n                WHERE user_id IS NULL AND email = $1",
+  "query": "DELETE FROM unverified_emails\n                    WHERE user_id IS NULL AND email = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -15,5 +15,5 @@
     },
     "nullable": []
   },
-  "hash": "5534b3644db4040fb3e442224f0e380f1280bf61b702237e22a9ac8040ae2cdf"
+  "hash": "51fef54994c2065ee361cd0a15d0f13cfd777e8dddb399d271f2194e0af4a80e"
 }

@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM unverified_emails\n            WHERE user_id IS NULL AND email = $1\n            RETURNING code_hash",
+  "query": "SELECT name FROM users\n                WHERE email = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "code_hash",
+        "name": "name",
         "type_info": "Text"
       }
     ],
@@ -20,8 +20,8 @@
       ]
     },
     "nullable": [
-      true
+      false
     ]
   },
-  "hash": "f7560c0a670150eb8c8802e274f4b7b54a16ac284e7ffd977321834ccf391de4"
+  "hash": "04836c143feaa45373bf7f6af41054e1c422d2536a7f4a65ea2a8fd10dbb6957"
 }

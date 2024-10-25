@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT email, code_hash as \"code_hash!\" FROM unverified_emails\n                    WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL",
+  "query": "SELECT email, code_hash as \"code_hash!\" FROM unverified_emails\n                        WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       true
     ]
   },
-  "hash": "cc7726b1cae4578a17769a94e8056f368678a5fdeddbc1889fd7c579843ca4e3"
+  "hash": "560bffcae1e69ce39c48a9f698a03045775f623d0a38894b83021c31a57797af"
 }
