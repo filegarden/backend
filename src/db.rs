@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 
 /// The SQLx database pool.
 static DB_POOL: OnceLock<PgPool> = OnceLock::new();
@@ -20,11 +20,26 @@ pub(super) async fn initialize() -> sqlx::Result<(), sqlx::Error> {
     let db_url = dotenvy::var("DATABASE_URL")
         .expect("environment variable `DATABASE_URL` should be a valid string");
 
+    let pool = PgPoolOptions::new()
+        .after_connect(|conn, _| {
+            Box::pin(async move {
+                // All database transactions should use the maximum isolation level (`SERIALIZABLE`)
+                // to guarantee race conditions are impossible. This generally greatly simplifies
+                // database operations and reduces the mental overhead of working with them.
+                conn.execute("SET default_transaction_isolation TO 'serializable';")
+                    .await?;
+
+                Ok(())
+            })
+        })
+        .connect(&db_url)
+        .await?;
+
     DB_POOL
-        .set(PgPool::connect(&db_url).await?)
+        .set(pool)
         .expect("database pool shouldn't already be initialized");
 
-    sqlx::migrate!().run(pool()).await?;
+    sqlx::migrate!().run(self::pool()).await?;
 
     Ok(())
 }
@@ -61,8 +76,6 @@ macro_rules! transaction {
             loop {
                 // TODO: Handle serialization anomaly.
                 let mut tx = $crate::db::pool().begin().await?;
-
-                // TODO: Set the isolation level to `SERIALIZABLE`.
 
                 // TODO: Handle serialization anomaly.
                 let return_value = match callback(&mut tx).await {
