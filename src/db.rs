@@ -69,24 +69,29 @@ macro_rules! transaction {
 
     ($callback:expr) => {
         async {
-            #[allow(clippy::allow_attributes, reason = "`unused_mut` isn't always expected.")]
+            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected.")]
             #[allow(unused_mut, reason = "Some callers need this to be `mut`.")]
             let mut callback = $callback;
 
-            loop {
-                // TODO: Handle serialization anomaly.
+            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected.")]
+            #[allow(unused_mut, reason = "Some callers need this to be `mut`.")]
+            let mut callback = async || {
                 let mut tx = $crate::db::pool().begin().await?;
 
-                // TODO: Handle serialization anomaly.
                 let return_value = match callback(&mut tx).await {
-                    Ok(return_value) => return_value,
-                    Err(error) => break Err(error),
+                    Ok(value) => value,
+                    Err(error) => return Err(error),
                 };
 
-                // TODO: Handle serialization anomaly.
                 tx.commit().await?;
+                Ok(return_value)
+            };
 
-                break Ok(return_value);
+            loop {
+                // TODO: Handle serialization anomaly.
+                match callback().await {
+                    result => break result,
+                };
             }
         }
     };
