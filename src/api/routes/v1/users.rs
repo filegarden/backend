@@ -12,8 +12,8 @@ use crate::{
         Json, Response,
     },
     crypto::{hash_with_salt, verify_hash},
+    db,
     id::NewUserId,
-    transaction,
 };
 
 /// A `POST` request body for this API route.
@@ -47,7 +47,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     let password_hash = hash_with_salt(&body.password)?;
 
-    transaction!(async |tx| {
+    db::transaction!(async |tx| {
         let does_code_match = sqlx::query!(
             "DELETE FROM unverified_emails
                 WHERE user_id IS NULL AND email = $1

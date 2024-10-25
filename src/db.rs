@@ -58,10 +58,9 @@ pub(crate) fn pool() -> &'static PgPool {
 
 /// Begins a database transaction with the maximum isolation level (`SERIALIZABLE`), retrying if the
 /// database detects a race condition (serialization anomaly).
-#[macro_export]
 macro_rules! transaction {
     ($($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
-        transaction!(
+        $crate::db::transaction!(
             $($ident)* |$tx: &mut sqlx::Transaction<'static, sqlx::Postgres>| $(-> $Return)? {
                 $block
             }
@@ -92,3 +91,5 @@ macro_rules! transaction {
         }
     };
 }
+
+pub(crate) use transaction;
