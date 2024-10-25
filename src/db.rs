@@ -9,10 +9,6 @@ static DB_POOL: OnceLock<PgPool> = OnceLock::new();
 
 /// Initializes the SQLx database pool and runs pending database migrations.
 ///
-/// All database transactions use the maximum isolation level (`SERIALIZABLE`) to guarantee race
-/// conditions are impossible. This generally greatly simplifies database operations and reduces the
-/// mental overhead of working with them.
-///
 /// # Errors
 ///
 /// Returns an error if the initial database connection or its migrations fail.
@@ -58,6 +54,9 @@ pub(crate) fn pool() -> &'static PgPool {
 
 /// Begins a database transaction with the maximum isolation level (`SERIALIZABLE`), retrying if the
 /// database detects a race condition (serialization anomaly).
+///
+/// Maximum isolation is used to minimize the possibility of data races. This generally greatly
+/// simplifies database operations and reduces the mental overhead of working with them.
 macro_rules! transaction {
     ($($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
         $crate::db::transaction!(
