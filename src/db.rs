@@ -9,6 +9,10 @@ static DB_POOL: OnceLock<PgPool> = OnceLock::new();
 
 /// Initializes the SQLx database pool and runs pending database migrations.
 ///
+/// All database transactions use the maximum isolation level (`SERIALIZABLE`) to guarantee race
+/// conditions are impossible. This generally greatly simplifies database operations and reduces the
+/// mental overhead of working with them.
+///
 /// # Errors
 ///
 /// Returns an error if the initial database connection or its migrations fail.
@@ -23,9 +27,6 @@ pub(super) async fn initialize() -> sqlx::Result<(), sqlx::Error> {
     let pool = PgPoolOptions::new()
         .after_connect(|conn, _| {
             Box::pin(async move {
-                // All database transactions should use the maximum isolation level (`SERIALIZABLE`)
-                // to guarantee race conditions are impossible. This generally greatly simplifies
-                // database operations and reduces the mental overhead of working with them.
                 conn.execute("SET default_transaction_isolation TO 'serializable';")
                     .await?;
 
