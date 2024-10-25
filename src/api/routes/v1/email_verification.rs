@@ -13,10 +13,9 @@ use crate::{
         Json, Query, Response,
     },
     crypto::{hash_without_salt, verify_hash},
-    db,
     email::{EmailTakenMessage, MessageTemplate, SendMessage, VerificationMessage},
     id::Token,
-    WEBSITE_ORIGIN,
+    transaction, WEBSITE_ORIGIN,
 };
 
 pub mod code;
@@ -52,12 +51,15 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         GetQuery::Token { token } => {
             let token_hash = hash_without_salt(&token);
 
-            let Some(unverified_email) = sqlx::query!(
-                "SELECT email FROM unverified_emails
-                    WHERE token_hash = $1 AND user_id IS NULL",
-                token_hash.as_ref(),
-            )
-            .fetch_optional(db::pool())
+            let Some(unverified_email) = transaction!(async |tx| {
+                sqlx::query!(
+                    "SELECT email FROM unverified_emails
+                        WHERE token_hash = $1 AND user_id IS NULL",
+                    token_hash.as_ref(),
+                )
+                .fetch_optional(tx.as_mut())
+                .await
+            })
             .await?
             else {
                 return Err(api::Error::ResourceNotFound);
@@ -67,12 +69,15 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         }
 
         GetQuery::EmailAndCode { email, code } => {
-            let Some(unverified_email) = sqlx::query!(
-                r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
-                    WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
-                email.as_str(),
-            )
-            .fetch_optional(db::pool())
+            let Some(unverified_email) = transaction!(async |tx| {
+                sqlx::query!(
+                    r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
+                        WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
+                    email.as_str(),
+                )
+                .fetch_optional(tx.as_mut())
+                .await
+            })
             .await?
             .filter(|unverified_email| verify_hash(&code, &unverified_email.code_hash)) else {
                 return Err(api::Error::ResourceNotFound);
@@ -108,71 +113,72 @@ pub struct PostRequest {
 /// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    let mut tx = db::pool().begin().await?;
-
-    let existing_user = sqlx::query!(
-        "SELECT name FROM users
-            WHERE email = $1",
-        body.email.as_str(),
-    )
-    .fetch_optional(&mut *tx)
-    .await?;
-
-    if let Some(user) = existing_user {
-        EmailTakenMessage {
-            email: body.email.as_str(),
-        }
-        .to(Mailbox::new(Some(user.name), (*body.email).clone()))
-        .send();
-    } else {
-        sqlx::query!(
-            "DELETE FROM unverified_emails
-                WHERE user_id IS NULL AND email = $1",
+    transaction!(async |tx| -> Result<_, api::Error> {
+        let existing_user = sqlx::query!(
+            "SELECT name FROM users
+                WHERE email = $1",
             body.email.as_str(),
         )
-        .execute(&mut *tx)
+        .fetch_optional(tx.as_mut())
         .await?;
 
-        let mut token = Token::generate()?;
-
-        loop {
-            // If this loop's query fails from a token conflict, this savepoint is rolled back to
-            // rather than aborting the entire transaction.
-            let mut savepoint = tx.begin().await?;
-
-            let token_hash = hash_without_salt(&token);
-
-            match sqlx::query!(
-                "INSERT INTO unverified_emails (token_hash, email)
-                    VALUES ($1, $2)",
-                token_hash.as_ref(),
+        if let Some(user) = existing_user {
+            EmailTakenMessage {
+                email: body.email.as_str(),
+            }
+            .to(Mailbox::new(Some(user.name), (*body.email).clone()))
+            .send();
+        } else {
+            sqlx::query!(
+                "DELETE FROM unverified_emails
+                    WHERE user_id IS NULL AND email = $1",
                 body.email.as_str(),
             )
-            .execute(&mut *savepoint)
-            .await
-            {
-                Err(sqlx::Error::Database(error))
-                    if error.constraint() == Some("unverified_emails_pkey") =>
+            .execute(tx.as_mut())
+            .await?;
+
+            let mut token = Token::generate()?;
+
+            loop {
+                // If this loop's query fails from a token conflict, this savepoint is rolled back to
+                // rather than aborting the entire transaction.
+                let mut savepoint = tx.begin().await?;
+
+                let token_hash = hash_without_salt(&token);
+
+                match sqlx::query!(
+                    "INSERT INTO unverified_emails (token_hash, email)
+                        VALUES ($1, $2)",
+                    token_hash.as_ref(),
+                    body.email.as_str(),
+                )
+                .execute(&mut *savepoint)
+                .await
                 {
-                    token.reroll()?;
-                    continue;
-                }
-                result => result?,
-            };
+                    Err(sqlx::Error::Database(error))
+                        if error.constraint() == Some("unverified_emails_pkey") =>
+                    {
+                        token.reroll()?;
+                        continue;
+                    }
+                    result => result?,
+                };
 
-            savepoint.commit().await?;
-            break;
+                savepoint.commit().await?;
+                break;
+            }
+
+            VerificationMessage {
+                email: body.email.as_str(),
+                verification_url: &format!("{}/sign-up?token={}", *WEBSITE_ORIGIN, token),
+            }
+            .to(Mailbox::new(None, (*body.email).clone()))
+            .send();
         }
 
-        VerificationMessage {
-            email: body.email.as_str(),
-            verification_url: &format!("{}/sign-up?token={}", *WEBSITE_ORIGIN, token),
-        }
-        .to(Mailbox::new(None, (*body.email).clone()))
-        .send();
-    }
-
-    tx.commit().await?;
+        Ok(())
+    })
+    .await?;
 
     // To prevent user enumeration, send this same successful response even if the email is taken.
     Ok((StatusCode::OK, Json(PostResponse { email: body.email })))

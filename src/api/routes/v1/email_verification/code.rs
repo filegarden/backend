@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     api::{self, captcha, Json, Query, Response},
     crypto::{generate_short_code, hash_with_salt, hash_without_salt},
-    db,
     id::Token,
+    transaction,
 };
 
 /// A `POST` request query for this API route.
@@ -46,15 +46,18 @@ pub async fn post(
     let code = generate_short_code();
     let code_hash = hash_with_salt(&code)?;
 
-    let Some(unverified_email) = sqlx::query!(
-        "UPDATE unverified_emails
-            SET code_hash = $1
-            WHERE token_hash = $2 AND user_id IS NULL
-            RETURNING email",
-        code_hash,
-        token_hash.as_ref(),
-    )
-    .fetch_optional(db::pool())
+    let Some(unverified_email) = transaction!(async |tx| {
+        sqlx::query!(
+            "UPDATE unverified_emails
+                SET code_hash = $1
+                WHERE token_hash = $2 AND user_id IS NULL
+                RETURNING email",
+            code_hash,
+            token_hash.as_ref(),
+        )
+        .fetch_optional(tx.as_mut())
+        .await
+    })
     .await?
     else {
         return Err(api::Error::ResourceNotFound);

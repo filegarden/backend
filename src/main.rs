@@ -1,5 +1,7 @@
 //! File Garden's backend web server.
 
+#![feature(async_closure)]
+
 use std::sync::LazyLock;
 
 use axum::handler::HandlerWithoutStateExt;
@@ -34,15 +36,10 @@ pub(crate) static WEBSITE_ORIGIN: LazyLock<String> = LazyLock::new(|| {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let address = dotenvy::var("ADDRESS")?;
-    let db_url = dotenvy::var("DATABASE_URL")?;
 
-    println!("Initializing database pool...");
+    println!("Initializing database...");
 
-    db::initialize_pool(&db_url).await?;
-
-    println!("Migrating database...");
-
-    sqlx::migrate!().run(db::pool()).await?;
+    db::initialize().await?;
 
     println!("Listening to {address}...");
 
