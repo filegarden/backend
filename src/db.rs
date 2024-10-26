@@ -32,11 +32,11 @@ pub(super) async fn initialize() -> sqlx::Result<(), sqlx::Error> {
         .connect(&db_url)
         .await?;
 
+    sqlx::migrate!().run(&pool).await?;
+
     DB_POOL
         .set(pool)
         .expect("database pool shouldn't already be initialized");
-
-    sqlx::migrate!().run(self::pool()).await?;
 
     Ok(())
 }
