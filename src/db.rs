@@ -60,7 +60,7 @@ pub(crate) fn pool() -> &'static PgPool {
 macro_rules! transaction {
     ($($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
         $crate::db::transaction!(
-            $($ident)* |$tx: &mut sqlx::Transaction<'static, sqlx::Postgres>| $(-> $Return)? {
+            $($ident)* |$tx: &mut ::sqlx::Transaction<'static, ::sqlx::Postgres>| $(-> $Return)? {
                 $block
             }
         )
