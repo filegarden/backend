@@ -53,7 +53,7 @@ pub(crate) fn pool() -> &'static PgPool {
 }
 
 /// Begins a database transaction with the maximum isolation level (`SERIALIZABLE`), retrying if the
-/// database detects a race condition (serialization anomaly).
+/// database detects a race condition (serialization failure).
 ///
 /// Maximum isolation is used to minimize the possibility of data races. This generally greatly
 /// simplifies database operations and reduces the mental overhead of working with them.
