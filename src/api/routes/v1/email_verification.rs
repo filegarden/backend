@@ -153,7 +153,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
                     token_hash.as_ref(),
                     body.email.as_str(),
                 )
-                .execute(&mut *savepoint)
+                .execute(savepoint.as_mut())
                 .await
                 {
                     Err(sqlx::Error::Database(error))

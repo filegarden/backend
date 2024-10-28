@@ -77,7 +77,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
                 *body.birthdate,
                 password_hash,
             )
-            .execute(&mut *savepoint)
+            .execute(savepoint.as_mut())
             .await
             {
                 Err(sqlx::Error::Database(error)) if error.constraint() == Some("users_pkey") => {
