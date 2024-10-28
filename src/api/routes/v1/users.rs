@@ -12,7 +12,7 @@ use crate::{
         Json, Response,
     },
     crypto::{hash_with_salt, verify_hash},
-    db::{self, TxError},
+    db::{self, TxError, TxResult},
     id::NewUserId,
 };
 
@@ -47,7 +47,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
     let password_hash = hash_with_salt(&body.password)?;
 
-    db::transaction!(async |tx| {
+    db::transaction!(async |tx| -> TxResult<_, api::Error> {
         let does_code_match = sqlx::query!(
             "DELETE FROM unverified_emails
                 WHERE user_id IS NULL AND email = $1
