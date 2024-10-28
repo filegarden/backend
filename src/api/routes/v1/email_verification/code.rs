@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// A `POST` request query for this API route.
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostQuery {
     /// The email verification token.
@@ -20,7 +20,7 @@ pub struct PostQuery {
 }
 
 /// A `POST` request body for this API route.
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// A token to verify this request was submitted manually.
@@ -74,7 +74,7 @@ pub async fn post(
 }
 
 /// A `POST` response body for this API route.
-#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The email address to verify.

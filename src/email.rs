@@ -11,7 +11,7 @@ use lettre::{
 };
 
 /// An email template asking a user to verify their email.
-#[derive(Template)]
+#[derive(Template, Debug)]
 #[template(path = "email/verification.html")]
 pub(crate) struct VerificationMessage<'a> {
     /// The email address being verified.
@@ -29,7 +29,7 @@ impl MessageTemplate for VerificationMessage<'_> {
 
 /// An email template informing a user that someone tried to sign up with their email despite them
 /// already having an account.
-#[derive(Template)]
+#[derive(Template, Debug)]
 #[template(path = "email/email_taken.html")]
 pub(crate) struct EmailTakenMessage<'a> {
     /// The email address used to try to sign up.

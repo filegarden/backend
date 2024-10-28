@@ -22,7 +22,7 @@ use crate::{
 pub mod code;
 
 /// A `GET` request query for this API route.
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum GetQuery {
     /// Identifies an email verification request by its verification token.
@@ -92,7 +92,7 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
 }
 
 /// A `GET` response body for this API route.
-#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetResponse {
     /// The email address to verify.
@@ -100,7 +100,7 @@ pub struct GetResponse {
 }
 
 /// A `POST` request body for this API route.
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The email address to verify.
@@ -186,7 +186,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 }
 
 /// A `POST` response body for this API route.
-#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The email address to verify.

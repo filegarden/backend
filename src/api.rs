@@ -147,7 +147,7 @@ impl From<reqwest::Error> for Error {
 }
 
 /// An API error's response body.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorBody {
     /// The computer-friendly error code in `SCREAMING_SNAKE_CASE`. See [`Error`] for error codes.

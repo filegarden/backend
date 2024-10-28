@@ -45,7 +45,7 @@ const MIN_USER_AGE: u32 = 13;
 const MAX_USER_AGE: u32 = 150;
 
 /// An error constructing a [`Birthdate`].
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Error, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BirthdateError {
     /// The date is invalid.
     #[error("date in birthdate is invalid")]
@@ -108,6 +108,7 @@ impl TryFrom<NaiveDate> for Birthdate {
     Eq,
     PartialOrd,
     Ord,
+    Hash,
     Debug,
 )]
 #[as_ref(forward)]
@@ -122,7 +123,7 @@ impl<const MIN: usize, const MAX: usize> BoundedString<MIN, MAX> {
 }
 
 /// An error constructing a [`BoundedString`].
-#[derive(Error, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Error, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum BoundedStringError<const MIN: usize, const MAX: usize> {
     /// The length was less than the [`BoundedString`]'s `MIN`.
     #[error("invalid length {0}, expected at least {MIN}")]
@@ -179,7 +180,7 @@ impl UserEmail {
 }
 
 /// An error constructing a [`UserEmail`].
-#[derive(Error, Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Error, Copy, Clone, Debug)]
 #[non_exhaustive]
 pub enum UserEmailError {
     /// The email address was invalid.

@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// A `POST` request body for this API route.
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The user's email address.
@@ -100,7 +100,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 }
 
 /// A `POST` response body for this API route.
-#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResponse {
     /// The user's ID.
