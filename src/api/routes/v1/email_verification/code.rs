@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     api::{self, captcha, Json, Query, Response},
     crypto::{generate_short_code, hash_with_salt, hash_without_salt},
-    db,
+    db::{self, TxResult},
     id::Token,
 };
 
@@ -46,8 +46,8 @@ pub async fn post(
     let code = generate_short_code();
     let code_hash = hash_with_salt(&code)?;
 
-    let Some(unverified_email) = db::transaction!(async |tx| {
-        sqlx::query!(
+    let Some(unverified_email) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
+        Ok(sqlx::query!(
             "UPDATE unverified_emails
                 SET code_hash = $1
                 WHERE token_hash = $2 AND user_id IS NULL
@@ -56,7 +56,7 @@ pub async fn post(
             token_hash.as_ref(),
         )
         .fetch_optional(tx.as_mut())
-        .await
+        .await?)
     })
     .await?
     else {

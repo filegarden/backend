@@ -1,7 +1,8 @@
 //! General database handling.
 
-use std::sync::OnceLock;
+use std::{error::Error, sync::OnceLock};
 
+use castaway::cast;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 
 /// The SQLx database pool.
@@ -52,6 +53,43 @@ pub(crate) fn pool() -> &'static PgPool {
         .expect("database pool should be initialized before use")
 }
 
+/// The error result of a database transaction.
+///
+/// Doesn't implement [`Error`] to prevent an impl conflict.
+pub(crate) enum TxError<E> {
+    /// Aborts the transaction and returns the wrapped error.
+    Abort(E),
+
+    /// Aborts the transaction and runs the `transaction!` callback again.
+    Retry,
+}
+
+/// The SQLSTATE code for serialization failures.
+const SERIALIZATION_FAILURE: &str = "40001";
+
+impl<S, E> From<S> for TxError<E>
+where
+    // This `Error` bound may be overly restrictive but prevents an impl conflict.
+    S: Error + 'static,
+    E: From<S>,
+{
+    fn from(source: S) -> Self {
+        match cast!(&source, &sqlx::Error) {
+            Ok(sqlx::Error::Database(source))
+                if source
+                    .code()
+                    .is_some_and(|code| code == SERIALIZATION_FAILURE) =>
+            {
+                Self::Retry
+            }
+            _ => Self::Abort(source.into()),
+        }
+    }
+}
+
+/// The result of a database transaction.
+pub(crate) type TxResult<T, E> = Result<T, TxError<E>>;
+
 /// Begins a database transaction with the maximum isolation level (`SERIALIZABLE`), retrying if the
 /// database detects a race condition (serialization failure).
 ///
@@ -74,7 +112,7 @@ macro_rules! transaction {
 
             #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
             #[allow(unused_mut, reason = "some callers need this to be `mut`")]
-            let mut callback = async || {
+            let mut callback = async || -> $crate::db::TxResult<_, _> {
                 let mut tx = $crate::db::pool().begin().await?;
 
                 let return_value = match callback(&mut tx).await {
@@ -87,10 +125,11 @@ macro_rules! transaction {
             };
 
             loop {
-                // TODO: Handle serialization anomaly.
                 match callback().await {
-                    result => break result,
-                };
+                    Ok(value) => break Ok(value),
+                    Err($crate::db::TxError::Abort(error)) => break Err(error),
+                    Err($crate::db::TxError::Retry) => {}
+                }
             }
         }
     };

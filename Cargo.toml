@@ -15,6 +15,7 @@ askama = "0.12"
 axum = "0.7"
 axum-macros = "0.4"
 base64 = "0.22"
+castaway = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 derive_more = { version = "1", features = ["full"] }
 dotenvy = "0.15"

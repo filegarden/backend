@@ -12,7 +12,7 @@ use crate::{
         Json, Response,
     },
     crypto::{hash_with_salt, verify_hash},
-    db,
+    db::{self, TxError},
     id::NewUserId,
 };
 
@@ -60,7 +60,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         .is_some_and(|code_hash| verify_hash(&body.email_verification_code, &code_hash));
 
         if !does_code_match {
-            return Err(api::Error::EmailVerificationCodeWrong);
+            return Err(TxError::Abort(api::Error::EmailVerificationCodeWrong));
         }
 
         loop {

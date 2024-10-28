@@ -13,7 +13,7 @@ use crate::{
         Json, Query, Response,
     },
     crypto::{hash_without_salt, verify_hash},
-    db,
+    db::{self, TxResult},
     email::{EmailTakenMessage, MessageTemplate, SendMessage, VerificationMessage},
     id::Token,
     WEBSITE_ORIGIN,
@@ -52,14 +52,14 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         GetQuery::Token { token } => {
             let token_hash = hash_without_salt(&token);
 
-            let Some(unverified_email) = db::transaction!(async |tx| {
-                sqlx::query!(
+            let Some(unverified_email) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
+                Ok(sqlx::query!(
                     "SELECT email FROM unverified_emails
                         WHERE token_hash = $1 AND user_id IS NULL",
                     token_hash.as_ref(),
                 )
                 .fetch_optional(tx.as_mut())
-                .await
+                .await?)
             })
             .await?
             else {
@@ -70,14 +70,14 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         }
 
         GetQuery::EmailAndCode { email, code } => {
-            let Some(unverified_email) = db::transaction!(async |tx| {
-                sqlx::query!(
+            let Some(unverified_email) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
+                Ok(sqlx::query!(
                     r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
                         WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
                     email.as_str(),
                 )
                 .fetch_optional(tx.as_mut())
-                .await
+                .await?)
             })
             .await?
             .filter(|unverified_email| verify_hash(&code, &unverified_email.code_hash)) else {
@@ -114,7 +114,7 @@ pub struct PostRequest {
 /// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
-    db::transaction!(async |tx| -> Result<_, api::Error> {
+    db::transaction!(async |tx| -> TxResult<_, api::Error> {
         let existing_user = sqlx::query!(
             "SELECT name FROM users
                 WHERE email = $1",
