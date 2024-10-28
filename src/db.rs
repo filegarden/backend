@@ -68,12 +68,12 @@ macro_rules! transaction {
 
     ($callback:expr) => {
         async {
-            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected.")]
-            #[allow(unused_mut, reason = "Some callers need this to be `mut`.")]
+            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
+            #[allow(unused_mut, reason = "some callers need this to be `mut`")]
             let mut callback = $callback;
 
-            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected.")]
-            #[allow(unused_mut, reason = "Some callers need this to be `mut`.")]
+            #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
+            #[allow(unused_mut, reason = "some callers need this to be `mut`")]
             let mut callback = async || {
                 let mut tx = $crate::db::pool().begin().await?;
 
