@@ -168,6 +168,11 @@ impl<const MIN: usize, const MAX: usize> TryFrom<String> for BoundedString<MIN, 
 pub struct UserEmail(Address);
 
 impl UserEmail {
+    /// The maximum length of a [`UserEmail`].
+    ///
+    /// As per RFC 3696 erratum 1690, the theoretical maximum is 254.
+    pub const MAX_LENGTH: usize = 254;
+
     /// Gets a reference to the email address string.
     pub fn as_str(&self) -> &str {
         self.as_ref()
@@ -197,6 +202,10 @@ impl FromStr for UserEmail {
     type Err = UserEmailError;
 
     fn from_str(str: &str) -> Result<Self, Self::Err> {
+        if str.len() > Self::MAX_LENGTH {
+            return Err(UserEmailError::Invalid);
+        }
+
         let Some((user, domain)) = str.rsplit_once('@') else {
             return Err(UserEmailError::Invalid);
         };
@@ -239,6 +248,8 @@ mod tests {
             "user@example-.com",
             "user@[127.0.0.1]",
             "user@[::1]",
+            "more-than-64-characters-in-the-local-part-is-toooooooooooooo-long@example.com",
+            "more-than-254-characters-total-is-tooo-long@example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.com",
         ];
 
         for email in invalid_emails {
@@ -250,7 +261,10 @@ mod tests {
 
     #[test]
     fn weird_user_emails_allowed() {
-        let valid_emails = ["user-of-a-mail-server-on-a-tld@com"];
+        let valid_emails = [
+            "user-of-a-mail-server-on-a-tld@com",
+            "64-characters-in-the-local-part-is-fiiiiiiiiiiiiiiiiiiiiiiiiiine@example.com",
+        ];
 
         for email in valid_emails {
             email
