@@ -34,7 +34,7 @@ pub(super) async fn handle(request: Request) -> Response {
             return api::handle(request).await;
         }
 
-        return website::handle(request);
+        return website::handle(request).await;
     }
 
     StatusCode::MISDIRECTED_REQUEST.into_response()

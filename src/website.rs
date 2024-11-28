@@ -1,18 +1,60 @@
 //! A web server for the website. File Garden exposes this via `https://filegarden.com/`.
 
+use std::sync::LazyLock;
+
 use axum::{
+    body::Body,
     extract::Request,
-    http::{Method, StatusCode},
-    response::{IntoResponse, Response},
+    http::uri::{Authority, Scheme},
+    response::Response,
 };
 
-/// The service function to handle incoming requests for the HTTP API.
-pub(super) fn handle(request: Request) -> Response {
-    let (request, _body) = request.into_parts();
+/// The local address of the internal server for the website.
+static INTERNAL_ADDRESS: LazyLock<Authority> = LazyLock::new(|| {
+    dotenvy::var("INTERNAL_WEBSITE_ADDRESS")
+        .expect("environment variable `INTERNAL_WEBSITE_ADDRESS` should be a valid string")
+        .parse()
+        .expect("environment variable `INTERNAL_WEBSITE_ADDRESS` should be a valid URI authority")
+});
 
-    if request.method != Method::GET {
-        return StatusCode::METHOD_NOT_ALLOWED.into_response();
-    }
+/// The client for connecting to the internal server for the website.
+static INTERNAL_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .expect("internal website client should build")
+});
 
-    "TODO".into_response()
+/// The service function to handle incoming requests for the website, proxying them to the website's
+/// internal server.
+pub(super) async fn handle(request: Request) -> Response {
+    let (mut request_parts, request_body) = request.into_parts();
+
+    let mut uri_parts = request_parts.uri.into_parts();
+    uri_parts.scheme = Some(Scheme::HTTP);
+    uri_parts.authority = Some(INTERNAL_ADDRESS.clone());
+
+    request_parts.uri = uri_parts
+        .try_into()
+        .expect("URI should still be valid after changing scheme and authority");
+
+    let request: reqwest::Request = Request::from_parts(
+        request_parts,
+        reqwest::Body::wrap_stream(request_body.into_data_stream()),
+    )
+    .try_into()
+    .expect("internal website request should be valid");
+
+    let response = INTERNAL_CLIENT
+        .execute(request)
+        .await
+        .expect("internal website server should respond");
+
+    let mut response_builder = Response::builder().status(response.status());
+    *response_builder
+        .headers_mut()
+        .expect("builder should be ok") = response.headers().clone();
+    response_builder
+        .body(Body::from_stream(response.bytes_stream()))
+        .expect("internal website response should be valid")
 }
