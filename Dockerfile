@@ -5,8 +5,9 @@ FROM rust:1.82-alpine AS build
 
 WORKDIR /app
 
-# Install dependencies needed for building the package.
-RUN apk add --no-cache clang lld musl-dev git file
+# Install all required build dependencies.
+RUN apk add --no-cache clang lld musl-dev git file openssl-dev \
+    openssl-libs-static
 
 COPY . .
 
