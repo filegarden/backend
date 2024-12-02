@@ -5,8 +5,11 @@ use std::sync::LazyLock;
 use axum::{
     body::Body,
     extract::Request,
-    http::uri::{Authority, Scheme},
-    response::Response,
+    http::{
+        uri::{Authority, Scheme},
+        StatusCode,
+    },
+    response::{IntoResponse, Response},
 };
 
 /// The local address of the internal server for the website.
@@ -45,10 +48,9 @@ pub(super) async fn handle(request: Request) -> Response {
     .try_into()
     .expect("internal website request should be valid");
 
-    let response = INTERNAL_CLIENT
-        .execute(request)
-        .await
-        .expect("internal website server should respond");
+    let Ok(response) = INTERNAL_CLIENT.execute(request).await else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
 
     let mut response_builder = Response::builder().status(response.status());
     *response_builder
