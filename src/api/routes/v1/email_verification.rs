@@ -171,7 +171,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
 
             VerificationMessage {
                 email: body.email.as_str(),
-                verification_url: &format!("{}/sign-up?token={}", *WEBSITE_ORIGIN, token),
+                verification_url: &format!("{}/verify-email?token={}", *WEBSITE_ORIGIN, token),
             }
             .to(Mailbox::new(None, (*body.email).clone()))
             .send();
