@@ -10,7 +10,7 @@ static SECRET_KEY: LazyLock<String> = LazyLock::new(|| {
         .expect("environment variable `TURNSTILE_SECRET_KEY` should be a valid string")
 });
 
-/// Verifies that a Cloudflare Turnstile token is valid.
+/// Returns whether a Cloudflare Turnstile token is valid.
 ///
 /// # Errors
 ///
