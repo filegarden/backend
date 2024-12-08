@@ -5,7 +5,7 @@ use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{self, captcha, Json, Query, Response},
+    api::{self, captcha, validation::CaptchaToken, Json, Query, Response},
     crypto::{generate_short_code, hash_with_salt, hash_without_salt},
     db::{self, TxResult},
     id::Token,
@@ -24,7 +24,7 @@ pub struct PostQuery {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// A token to verify this request was submitted manually.
-    pub captcha_token: String,
+    pub captcha_token: CaptchaToken,
 }
 
 /// Generates a new email verification code for a new user.

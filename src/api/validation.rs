@@ -19,6 +19,9 @@ pub type UserPassword = BoundedString<8, 256>;
 /// An unverified email's verification code in plain text.
 pub type EmailVerificationCode = BoundedString<6, 6>;
 
+/// A CAPTCHA token.
+pub type CaptchaToken = BoundedString<1, 2048>;
+
 /// A user's birthdate.
 #[derive(
     Deref,
