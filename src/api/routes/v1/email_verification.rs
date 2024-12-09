@@ -8,8 +8,8 @@ use sqlx::Acquire;
 
 use crate::{
     api::{
-        self,
-        validation::{EmailVerificationCode, UserEmail},
+        self, captcha,
+        validation::{CaptchaToken, EmailVerificationCode, UserEmail},
         Json, Query, Response,
     },
     crypto::{hash_without_salt, verify_hash},
@@ -105,6 +105,9 @@ pub struct GetResponse {
 pub struct PostRequest {
     /// The email address to verify.
     pub email: UserEmail,
+
+    /// A token to verify this request was submitted manually.
+    pub captcha_token: CaptchaToken,
 }
 
 /// Sends a verification email for a new user if the email isn't already taken by an existing user.
@@ -114,6 +117,11 @@ pub struct PostRequest {
 /// See [`crate::api::Error`].
 #[debug_handler]
 pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
+    // We don't want bots creating accounts or spamming people with verification emails.
+    if !captcha::verify(&body.captcha_token).await? {
+        return Err(api::Error::CaptchaFailed);
+    }
+
     db::transaction!(async |tx| -> TxResult<_, api::Error> {
         let existing_user = sqlx::query!(
             "SELECT name FROM users

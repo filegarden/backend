@@ -5,7 +5,7 @@ use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{self, captcha, validation::CaptchaToken, Json, Query, Response},
+    api::{self, Json, Query, Response},
     crypto::{generate_short_code, hash_with_salt, hash_without_salt},
     db::{self, TxResult},
     id::Token,
@@ -19,28 +19,13 @@ pub struct PostQuery {
     pub token: Token,
 }
 
-/// A `POST` request body for this API route.
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PostRequest {
-    /// A token to verify this request was submitted manually.
-    pub captcha_token: CaptchaToken,
-}
-
 /// Generates a new email verification code for a new user.
 ///
 /// # Errors
 ///
 /// See [`crate::api::Error`].
 #[debug_handler]
-pub async fn post(
-    Query(query): Query<PostQuery>,
-    Json(body): Json<PostRequest>,
-) -> Response<PostResponse> {
-    if !captcha::verify(&body.captcha_token).await? {
-        return Err(api::Error::CaptchaFailed);
-    }
-
+pub async fn post(Query(query): Query<PostQuery>) -> Response<PostResponse> {
     let token_hash = hash_without_salt(&query.token);
 
     let code = generate_short_code();
