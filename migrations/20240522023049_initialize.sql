@@ -5,7 +5,6 @@ CREATE TABLE users (
     id bytea PRIMARY KEY,
     email citext NOT NULL UNIQUE,
     name text NOT NULL,
-    birthdate date NOT NULL,
     password_hash text NOT NULL,
     totp_secret bytea
 );

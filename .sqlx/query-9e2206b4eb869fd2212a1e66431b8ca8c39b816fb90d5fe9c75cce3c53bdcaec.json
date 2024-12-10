@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO users (id, email, name, birthdate, password_hash)\n                    VALUES ($1, $2, $3, $4, $5)",
+  "query": "INSERT INTO users (id, email, name, password_hash)\n                    VALUES ($1, $2, $3, $4)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,11 +13,10 @@
           }
         },
         "Text",
-        "Date",
         "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "52e4510557b2bb5307a147bdd063ab5f3f0169cc68034844fcded3abd98ab018"
+  "hash": "9e2206b4eb869fd2212a1e66431b8ca8c39b816fb90d5fe9c75cce3c53bdcaec"
 }

@@ -8,7 +8,7 @@ use sqlx::Acquire;
 use crate::{
     api::{
         self,
-        validation::{Birthdate, EmailVerificationCode, UserEmail, UserName, UserPassword},
+        validation::{EmailVerificationCode, UserEmail, UserName, UserPassword},
         Json, Response,
     },
     crypto::{hash_with_salt, verify_hash},
@@ -28,9 +28,6 @@ pub struct PostRequest {
 
     /// The user's name.
     pub name: UserName,
-
-    /// The user's birthdate, from a string in ISO 8601 date format.
-    pub birthdate: Birthdate,
 
     /// The user's password in plain text.
     pub password: UserPassword,
@@ -69,12 +66,11 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
             let mut savepoint = tx.begin().await?;
 
             match sqlx::query!(
-                "INSERT INTO users (id, email, name, birthdate, password_hash)
-                    VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO users (id, email, name, password_hash)
+                    VALUES ($1, $2, $3, $4)",
                 user_id.as_slice(),
                 body.email.as_str(),
                 *body.name,
-                *body.birthdate,
                 password_hash,
             )
             .execute(savepoint.as_mut())

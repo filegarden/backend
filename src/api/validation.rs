@@ -2,7 +2,6 @@
 
 use std::str::FromStr;
 
-use chrono::{Days, Months, NaiveDate, Utc};
 use derive_more::derive::{AsRef, Deref, Display};
 use idna::uts46::{self, Uts46};
 use lettre::Address;
@@ -21,83 +20,6 @@ pub type EmailVerificationCode = BoundedString<6, 6>;
 
 /// A CAPTCHA token.
 pub type CaptchaToken = BoundedString<1, 2048>;
-
-/// A user's birthdate.
-#[derive(
-    Deref,
-    AsRef,
-    Display,
-    DeserializeFromStr,
-    Serialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-)]
-#[as_ref(forward)]
-pub struct Birthdate(NaiveDate);
-
-/// The minimum years old a user can claim to be when setting their birthdate.
-const MIN_USER_AGE: u32 = 13;
-
-/// The maximum years old a user can claim to be when setting their birthdate.
-const MAX_USER_AGE: u32 = 150;
-
-/// An error constructing a [`Birthdate`].
-#[derive(Error, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum BirthdateError {
-    /// The date is invalid.
-    #[error("date in birthdate is invalid")]
-    InvalidDate(#[from] chrono::format::ParseError),
-
-    /// The birthdate is less than the minimum allowed.
-    #[error("birthdate too old; expected at least {MAX_USER_AGE} years ago")]
-    TooOld,
-
-    /// The birthdate is greater than the maximum allowed.
-    #[error("birthdate too young; expected at most {MIN_USER_AGE} years ago")]
-    TooYoung,
-}
-
-impl Birthdate {
-    /// Consumes the [`Birthdate`], returning the wrapped [`NaiveDate`].
-    pub fn into_inner(self) -> NaiveDate {
-        self.0
-    }
-}
-
-impl FromStr for Birthdate {
-    type Err = BirthdateError;
-
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
-        str.parse::<NaiveDate>()?.try_into()
-    }
-}
-
-impl TryFrom<NaiveDate> for Birthdate {
-    type Error = BirthdateError;
-
-    fn try_from(date: NaiveDate) -> Result<Self, Self::Error> {
-        // Offset one day ahead to be generous to all time zones, even though it can let users sign
-        // up a day before they meet the minimum age.
-        let today = Utc::now().date_naive() + Days::new(1);
-
-        let min_birthdate = today - Months::new(12 * MAX_USER_AGE);
-        let max_birthdate = today - Months::new(12 * MIN_USER_AGE);
-
-        if date < min_birthdate {
-            Err(BirthdateError::TooOld)
-        } else if date > max_birthdate {
-            Err(BirthdateError::TooYoung)
-        } else {
-            Ok(Self(date))
-        }
-    }
-}
 
 /// A [`String`] newtype that guarantees its length is within a certain range.
 #[derive(
