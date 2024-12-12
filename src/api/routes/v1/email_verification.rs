@@ -41,7 +41,7 @@ pub enum GetQuery {
     },
 }
 
-/// Checks an existing an email verification request.
+/// Checks an existing email verification request.
 ///
 /// # Errors
 ///
