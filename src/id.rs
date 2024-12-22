@@ -69,6 +69,12 @@ impl<T: AsRef<[u8]>> Display for Id<T> {
     }
 }
 
+impl<T> From<T> for Id<T> {
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
 /// An error constructing an [`Id`].
 #[derive(Error, Clone, Debug)]
 #[non_exhaustive]
