@@ -137,53 +137,55 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
             }
             .to(Mailbox::new(Some(user.name), (*body.email).clone()))
             .send();
-        } else {
-            sqlx::query!(
-                "DELETE FROM unverified_emails
-                    WHERE user_id IS NULL AND email = $1",
+
+            return Ok(());
+        }
+
+        sqlx::query!(
+            "DELETE FROM unverified_emails
+                WHERE user_id IS NULL AND email = $1",
+            body.email.as_str(),
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        let mut token = Token::generate()?;
+
+        loop {
+            // If this loop's query fails from a token conflict, this savepoint is rolled back to
+            // rather than aborting the entire transaction.
+            let mut savepoint = tx.begin().await?;
+
+            let token_hash = hash_without_salt(&token);
+
+            match sqlx::query!(
+                "INSERT INTO unverified_emails (token_hash, email)
+                    VALUES ($1, $2)",
+                token_hash.as_ref(),
                 body.email.as_str(),
             )
-            .execute(tx.as_mut())
-            .await?;
-
-            let mut token = Token::generate()?;
-
-            loop {
-                // If this loop's query fails from a token conflict, this savepoint is rolled back to
-                // rather than aborting the entire transaction.
-                let mut savepoint = tx.begin().await?;
-
-                let token_hash = hash_without_salt(&token);
-
-                match sqlx::query!(
-                    "INSERT INTO unverified_emails (token_hash, email)
-                        VALUES ($1, $2)",
-                    token_hash.as_ref(),
-                    body.email.as_str(),
-                )
-                .execute(savepoint.as_mut())
-                .await
+            .execute(savepoint.as_mut())
+            .await
+            {
+                Err(sqlx::Error::Database(error))
+                    if error.constraint() == Some("unverified_emails_pkey") =>
                 {
-                    Err(sqlx::Error::Database(error))
-                        if error.constraint() == Some("unverified_emails_pkey") =>
-                    {
-                        token.reroll()?;
-                        continue;
-                    }
-                    result => result?,
-                };
+                    token.reroll()?;
+                    continue;
+                }
+                result => result?,
+            };
 
-                savepoint.commit().await?;
-                break;
-            }
-
-            VerificationMessage {
-                email: body.email.as_str(),
-                verification_url: &format!("{}/verify-email?token={}", *WEBSITE_ORIGIN, token),
-            }
-            .to(Mailbox::new(None, (*body.email).clone()))
-            .send();
+            savepoint.commit().await?;
+            break;
         }
+
+        VerificationMessage {
+            email: body.email.as_str(),
+            verification_url: &format!("{}/verify-email?token={}", *WEBSITE_ORIGIN, token),
+        }
+        .to(Mailbox::new(None, (*body.email).clone()))
+        .send();
 
         Ok(())
     })
