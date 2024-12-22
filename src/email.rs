@@ -10,6 +10,8 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 
+use crate::WEBSITE_ORIGIN;
+
 /// An email template asking a user to verify their email.
 #[derive(Template, Debug)]
 #[template(path = "email/verification.html")]
@@ -39,6 +41,35 @@ pub(crate) struct EmailTakenMessage<'a> {
 impl MessageTemplate for EmailTakenMessage<'_> {
     fn subject(&self) -> String {
         "Sign-up failed for existing account - File Garden".into()
+    }
+}
+
+/// An email template giving a user a link to reset their password.
+#[derive(Template, Debug)]
+#[template(path = "email/password_reset.html")]
+pub(crate) struct PasswordResetMessage<'a> {
+    /// The URL the user must visit to reset their password.
+    pub(crate) password_reset_url: &'a str,
+}
+
+impl MessageTemplate for PasswordResetMessage<'_> {
+    fn subject(&self) -> String {
+        "Reset your password? - File Garden".into()
+    }
+}
+
+/// An email template informing a user that someone tried to reset a password for their email
+/// despite them not having an account.
+#[derive(Template, Debug)]
+#[template(path = "email/password_reset_failed.html")]
+pub(crate) struct PasswordResetFailedMessage<'a> {
+    /// The email address that the password reset was submitted with.
+    pub(crate) email: &'a str,
+}
+
+impl MessageTemplate for PasswordResetFailedMessage<'_> {
+    fn subject(&self) -> String {
+        "Password reset failed - File Garden".into()
     }
 }
 

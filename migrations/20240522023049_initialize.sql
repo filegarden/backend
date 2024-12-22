@@ -22,8 +22,8 @@ CREATE UNIQUE INDEX unverified_user_emails ON unverified_emails (email)
 
 CREATE TABLE password_resets (
     created_at timestamptz NOT NULL DEFAULT now(),
-    user_id bytea PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-    token_hash bytea NOT NULL
+    token_hash bytea PRIMARY KEY,
+    user_id bytea NOT NULL UNIQUE REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE sessions (

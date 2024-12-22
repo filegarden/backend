@@ -13,6 +13,7 @@ pub mod v1 {
     //! The routes for version 1 of the HTTP API.
 
     pub mod email_verification;
+    pub mod password_reset;
     pub mod users;
 }
 
@@ -27,6 +28,7 @@ pub(super) static ROUTER: LazyLock<Router> = LazyLock::new(|| {
             "/api/v1/email-verification/code",
             post(v1::email_verification::code::post),
         )
+        .route("/api/v1/password-reset", post(v1::password_reset::post))
         .route("/api/v1/users", post(v1::users::post))
         .fallback(|| async { api::Error::RouteNotFound })
 });
