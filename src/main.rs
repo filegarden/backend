@@ -1,7 +1,5 @@
 //! File Garden's backend web server.
 
-#![feature(async_closure)]
-
 use std::sync::LazyLock;
 
 use axum::handler::HandlerWithoutStateExt;
