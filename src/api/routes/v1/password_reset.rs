@@ -15,7 +15,7 @@ use crate::{
     crypto::hash_without_salt,
     db::{self, TxResult},
     email::{MessageTemplate, PasswordResetFailedMessage, PasswordResetMessage, SendMessage},
-    id::{Id, Token},
+    id::Token,
     WEBSITE_ORIGIN,
 };
 
@@ -38,8 +38,9 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
 
     let Some(password_reset) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
         Ok(sqlx::query!(
-            "SELECT user_id FROM password_resets
-                WHERE token_hash = $1",
+            "SELECT users.email
+                FROM password_resets JOIN users ON users.id = password_resets.user_id
+                WHERE password_resets.token_hash = $1",
             token_hash.as_ref(),
         )
         .fetch_optional(tx.as_mut())
@@ -50,12 +51,10 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         return Err(api::Error::ResourceNotFound);
     };
 
-    let user_id = Id::from(password_reset.user_id);
-
     Ok((
         StatusCode::OK,
         Json(GetResponse {
-            user_id: user_id.to_string(),
+            email: password_reset.email,
         }),
     ))
 }
@@ -64,8 +63,8 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetResponse {
-    /// The ID of the user whose password reset was requested.
-    pub user_id: String,
+    /// The email of the user whose password reset was requested.
+    pub email: String,
 }
 
 /// A `POST` request body for this API route.
