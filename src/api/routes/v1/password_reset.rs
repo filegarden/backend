@@ -19,6 +19,8 @@ use crate::{
     WEBSITE_ORIGIN,
 };
 
+pub mod password;
+
 /// A `GET` request query for this API route.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

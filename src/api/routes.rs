@@ -32,6 +32,10 @@ pub(super) static ROUTER: LazyLock<Router> = LazyLock::new(|| {
             "/api/v1/password-reset",
             get(v1::password_reset::get).post(v1::password_reset::post),
         )
+        .route(
+            "/api/v1/password-reset/password",
+            post(v1::password_reset::password::post),
+        )
         .route("/api/v1/users", post(v1::users::post))
         .fallback(|| async { api::Error::RouteNotFound })
 });
