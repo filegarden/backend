@@ -151,6 +151,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
         }
 
         PasswordResetMessage {
+            email: body.email.as_str(),
             password_reset_url: &format!("{}/password-reset?token={}", *WEBSITE_ORIGIN, token),
         }
         .to(Mailbox::new(Some(user.name), (*body.email).clone()))

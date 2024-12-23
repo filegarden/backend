@@ -48,6 +48,9 @@ impl MessageTemplate for EmailTakenMessage<'_> {
 #[derive(Template, Debug)]
 #[template(path = "email/password_reset.html")]
 pub(crate) struct PasswordResetMessage<'a> {
+    /// The email address that the password reset was submitted with.
+    pub(crate) email: &'a str,
+
     /// The URL the user must visit to reset their password.
     pub(crate) password_reset_url: &'a str,
 }
