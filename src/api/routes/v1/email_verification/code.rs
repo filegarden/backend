@@ -48,7 +48,6 @@ pub async fn post(Query(query): Query<PostQuery>) -> Response<PostResponse> {
         return Err(api::Error::ResourceNotFound);
     };
 
-    // To prevent user enumeration, send this same successful response even if the email is taken.
     Ok((
         StatusCode::OK,
         Json(PostResponse {
