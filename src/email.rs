@@ -89,7 +89,7 @@ pub(crate) trait MessageTemplate: Template {
     /// Gets the message's subject line.
     fn subject(&self) -> String;
 
-    /// Generates a multipart HTML and plain text body for the email message template.
+    /// Generates a subject and multipart HTML and plain text body for the email message template.
     fn to(&self, mailbox: Mailbox) -> Message {
         let mut subject = self.subject();
         subject.push_str(" | File Garden");
