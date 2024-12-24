@@ -25,7 +25,7 @@ pub(crate) struct VerificationMessage<'a> {
 
 impl MessageTemplate for VerificationMessage<'_> {
     fn subject(&self) -> String {
-        "Verify your email - File Garden".into()
+        "Verify your email | File Garden".into()
     }
 }
 
@@ -40,7 +40,7 @@ pub(crate) struct EmailTakenMessage<'a> {
 
 impl MessageTemplate for EmailTakenMessage<'_> {
     fn subject(&self) -> String {
-        "Sign-up failed for existing account - File Garden".into()
+        "Sign-up failed for existing account | File Garden".into()
     }
 }
 
@@ -57,7 +57,7 @@ pub(crate) struct PasswordResetMessage<'a> {
 
 impl MessageTemplate for PasswordResetMessage<'_> {
     fn subject(&self) -> String {
-        "Reset your password? - File Garden".into()
+        "Reset your password? | File Garden".into()
     }
 }
 
@@ -72,7 +72,7 @@ pub(crate) struct PasswordResetFailedMessage<'a> {
 
 impl MessageTemplate for PasswordResetFailedMessage<'_> {
     fn subject(&self) -> String {
-        "Password reset failed - File Garden".into()
+        "Password reset failed | File Garden".into()
     }
 }
 
