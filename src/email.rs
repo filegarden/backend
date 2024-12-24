@@ -25,7 +25,7 @@ pub(crate) struct VerificationMessage<'a> {
 
 impl MessageTemplate for VerificationMessage<'_> {
     fn subject(&self) -> String {
-        "Verify your email | File Garden".into()
+        "Verify your email".into()
     }
 }
 
@@ -40,7 +40,7 @@ pub(crate) struct EmailTakenMessage<'a> {
 
 impl MessageTemplate for EmailTakenMessage<'_> {
     fn subject(&self) -> String {
-        "Sign-up failed for existing account | File Garden".into()
+        "Sign-up failed for existing account".into()
     }
 }
 
@@ -57,7 +57,7 @@ pub(crate) struct PasswordResetMessage<'a> {
 
 impl MessageTemplate for PasswordResetMessage<'_> {
     fn subject(&self) -> String {
-        "Reset your password? | File Garden".into()
+        "Reset your password?".into()
     }
 }
 
@@ -72,7 +72,7 @@ pub(crate) struct PasswordResetFailedMessage<'a> {
 
 impl MessageTemplate for PasswordResetFailedMessage<'_> {
     fn subject(&self) -> String {
-        "Password reset failed | File Garden".into()
+        "Password reset failed".into()
     }
 }
 
@@ -91,6 +91,9 @@ pub(crate) trait MessageTemplate: Template {
 
     /// Generates a multipart HTML and plain text body for the email message template.
     fn to(&self, mailbox: Mailbox) -> Message {
+        let mut subject = self.subject();
+        subject.push_str(" | File Garden");
+
         let html = self.to_string();
         let plain = html2text::config::with_decorator(TrivialDecorator::new())
             .string_from_read(html.as_bytes(), usize::MAX)
@@ -99,7 +102,7 @@ pub(crate) trait MessageTemplate: Template {
         Message::builder()
             .from(FROM_MAILBOX.clone())
             .to(mailbox)
-            .subject(self.subject())
+            .subject(subject)
             .multipart(MultiPart::alternative_plain_html(plain, html))
             .expect("message should be valid")
     }
