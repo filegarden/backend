@@ -94,15 +94,14 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
     }
 
     db::transaction!(async |tx| -> TxResult<_, api::Error> {
-        let user = sqlx::query!(
+        let Some(user) = sqlx::query!(
             "SELECT id, name FROM users
                 WHERE email = $1",
             body.email.as_str(),
         )
         .fetch_optional(tx.as_mut())
-        .await?;
-
-        let Some(user) = user else {
+        .await?
+        else {
             PasswordResetFailedMessage {
                 email: body.email.as_str(),
             }
