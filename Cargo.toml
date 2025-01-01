@@ -33,6 +33,7 @@ strum_macros = "0.26"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
+tower-cookies = { version = "0.10" }
 
 [lints]
 # Last updated for Clippy version: 1.83
@@ -108,7 +109,6 @@ clippy.manual_instant_elapsed = "warn"
 clippy.manual_is_variant_and = "warn"
 clippy.manual_let_else = "warn"
 clippy.manual_ok_or = "warn"
-clippy.map_unwrap_or = "warn"
 clippy.match_bool = "warn"
 clippy.mixed_read_write_in_expression = "warn"
 clippy.mod_module_files = "warn"

@@ -46,7 +46,7 @@ pub(super) async fn handle(request: Request) -> Response {
 ///
 /// Panics if the origin string doesn't contain "//".
 fn host_from_origin(origin: &str) -> &str {
-    let host_index = origin.find("//").expect("origin should contain \"//\"") + 2;
+    let start = origin.find("//").expect("origin should contain \"//\"") + 2;
 
-    &origin[host_index..]
+    &origin[start..]
 }

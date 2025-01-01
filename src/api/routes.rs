@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use tower_cookies::CookieManagerLayer;
 
 use crate::api;
 
@@ -14,6 +15,7 @@ pub mod v1 {
 
     pub mod email_verification;
     pub mod password_reset;
+    pub mod sessions;
     pub mod users;
 }
 
@@ -36,6 +38,8 @@ pub(super) static ROUTER: LazyLock<Router> = LazyLock::new(|| {
             "/api/v1/password-reset/password",
             post(v1::password_reset::password::post),
         )
+        .route("/api/v1/sessions", post(v1::sessions::post))
         .route("/api/v1/users", post(v1::users::post))
         .fallback(|| async { api::Error::RouteNotFound })
+        .layer(CookieManagerLayer::new())
 });

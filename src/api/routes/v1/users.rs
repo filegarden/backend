@@ -8,7 +8,7 @@ use sqlx::Acquire;
 use crate::{
     api::{
         self,
-        validation::{EmailVerificationCode, UserEmail, UserName, UserPassword},
+        validation::{EmailVerificationCode, NewUserPassword, UserEmail, UserName},
         Json, Response,
     },
     crypto::{hash_with_salt, verify_hash},
@@ -29,8 +29,8 @@ pub struct PostRequest {
     /// The user's name.
     pub name: UserName,
 
-    /// The user's password in plain text.
-    pub password: UserPassword,
+    /// The user's new password in plain text.
+    pub password: NewUserPassword,
 }
 
 /// Creates a new user.

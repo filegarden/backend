@@ -5,7 +5,7 @@ use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{self, validation::UserPassword, Json, Query, Response},
+    api::{self, validation::NewUserPassword, Json, Query, Response},
     crypto::{hash_with_salt, hash_without_salt},
     db::{self, TxError, TxResult},
     id::Token,
@@ -24,7 +24,7 @@ pub struct PostQuery {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostRequest {
     /// The user's new password in plain text.
-    pub password: UserPassword,
+    pub password: NewUserPassword,
 }
 
 /// Sets a new password to fulfill a user's password reset request.

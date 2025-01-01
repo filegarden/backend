@@ -68,6 +68,10 @@ pub enum Error {
     /// The requested API route doesn't exist.
     #[error("The requested API route doesn't exist.")]
     RouteNotFound,
+
+    /// Credentials specified in the request (such as email and password) don't match any user.
+    #[error("The specified user credentials are incorrect.")]
+    UserCredentialsWrong,
 }
 
 impl Error {
@@ -84,6 +88,7 @@ impl Error {
             Self::JsonSyntax(_) => StatusCode::BAD_REQUEST,
             Self::ResourceNotFound => StatusCode::NOT_FOUND,
             Self::RouteNotFound => StatusCode::NOT_FOUND,
+            Self::UserCredentialsWrong => StatusCode::FORBIDDEN,
         }
     }
 
