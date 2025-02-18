@@ -1,6 +1,6 @@
 //! The set of all users.
 
-use axum::http::StatusCode;
+use axum::{extract::State, http::StatusCode};
 use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
@@ -14,6 +14,7 @@ use crate::{
     crypto::{hash_with_salt, verify_hash},
     db::{self, TxError, TxResult},
     id::NewUserId,
+    AppState,
 };
 
 /// A `POST` request body for this API route.
@@ -39,12 +40,15 @@ pub struct PostRequest {
 ///
 /// See [`crate::api::Error`].
 #[debug_handler]
-pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
+pub async fn post(
+    State(state): State<AppState>,
+    Json(body): Json<PostRequest>,
+) -> Response<PostResponse> {
     let mut user_id = NewUserId::generate()?;
 
     let password_hash = hash_with_salt(&body.password)?;
 
-    db::transaction!(async |tx| -> TxResult<_, api::Error> {
+    db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
         let does_code_match = sqlx::query!(
             "DELETE FROM unverified_emails
                 WHERE user_id IS NULL AND email = $1

@@ -1,14 +1,11 @@
 //! General database handling.
 
-use std::{error::Error, sync::OnceLock};
+use std::error::Error;
 
 use castaway::cast;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 
-/// The SQLx database pool.
-static DB_POOL: OnceLock<PgPool> = OnceLock::new();
-
-/// Initializes the SQLx database pool and runs pending database migrations.
+/// Initializes the SQLx database pool and runs pending database migrations, returning the pool once complete.
 ///
 /// # Errors
 ///
@@ -17,10 +14,7 @@ static DB_POOL: OnceLock<PgPool> = OnceLock::new();
 /// # Panics
 ///
 /// Panics if the database is already initialized.
-pub(super) async fn initialize() -> sqlx::Result<(), sqlx::Error> {
-    let db_url = dotenvy::var("DATABASE_URL")
-        .expect("environment variable `DATABASE_URL` should be a valid string");
-
+pub(super) async fn initialize(db_url: &str) -> sqlx::Result<PgPool, sqlx::Error> {
     let pool = PgPoolOptions::new()
         .after_connect(|conn, _| {
             Box::pin(async move {
@@ -30,27 +24,12 @@ pub(super) async fn initialize() -> sqlx::Result<(), sqlx::Error> {
                 Ok(())
             })
         })
-        .connect(&db_url)
+        .connect(db_url)
         .await?;
 
     sqlx::migrate!().run(&pool).await?;
 
-    DB_POOL
-        .set(pool)
-        .expect("database pool shouldn't already be initialized");
-
-    Ok(())
-}
-
-/// Gets the SQLx database pool.
-///
-/// # Panics
-///
-/// Panics if called before the database pool is initialized.
-pub(crate) fn pool() -> &'static PgPool {
-    DB_POOL
-        .get()
-        .expect("database pool should be initialized before use")
+    Ok(pool)
 }
 
 /// The error result of a database transaction.
@@ -97,15 +76,16 @@ pub(crate) type TxResult<T, E> = Result<T, TxError<E>>;
 /// Maximum isolation is used to minimize the possibility of data races. This generally greatly
 /// simplifies database operations and reduces the mental overhead of working with them.
 macro_rules! transaction {
-    ($($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
+    ($db_pool:expr, $($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
         $crate::db::transaction!(
+            $db_pool,
             $($ident)* |$tx: &mut ::sqlx::Transaction<'static, ::sqlx::Postgres>| $(-> $Return)? {
                 $block
             }
         )
     };
 
-    ($callback:expr) => {
+    ($db_pool:expr, $callback:expr) => {
         async {
             #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
             #[allow(unused_mut, reason = "some callers need this to be `mut`")]
@@ -114,7 +94,7 @@ macro_rules! transaction {
             #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
             #[allow(unused_mut, reason = "some callers need this to be `mut`")]
             let mut callback = async || -> $crate::db::TxResult<_, _> {
-                let mut tx = $crate::db::pool().begin().await?;
+                let mut tx = $db_pool.begin().await?;
 
                 let return_value = match callback(&mut tx).await {
                     Ok(value) => value,

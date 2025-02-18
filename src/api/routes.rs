@@ -8,7 +8,7 @@ use axum::{
 };
 use tower_cookies::CookieManagerLayer;
 
-use crate::api;
+use crate::{api, AppState};
 
 pub mod v1 {
     //! The routes for version 1 of the HTTP API.
@@ -20,7 +20,7 @@ pub mod v1 {
 }
 
 /// The API router.
-pub(super) static ROUTER: LazyLock<Router> = LazyLock::new(|| {
+pub(super) static ROUTER: LazyLock<Router<AppState>> = LazyLock::new(|| {
     Router::new()
         .route(
             "/api/v1/email-verification",

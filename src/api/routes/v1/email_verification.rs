@@ -1,6 +1,6 @@
 //! The set of email verification requests for new users.
 
-use axum::http::StatusCode;
+use axum::{extract::State, http::StatusCode};
 use axum_macros::debug_handler;
 use lettre::message::Mailbox;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use crate::{
     db::{self, TxResult},
     email::{EmailTakenMessage, MessageTemplate, SendMessage, VerificationMessage},
     id::Token,
-    WEBSITE_ORIGIN,
+    AppState, WEBSITE_ORIGIN,
 };
 
 pub mod code;
@@ -47,21 +47,25 @@ pub enum GetQuery {
 ///
 /// See [`crate::api::Error`].
 #[debug_handler]
-pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
+pub async fn get(
+    State(state): State<AppState>,
+    Query(query): Query<GetQuery>,
+) -> Response<GetResponse> {
     let email = match query {
         GetQuery::Token { token } => {
             let token_hash = hash_without_salt(&token);
 
-            let Some(unverified_email) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
-                Ok(sqlx::query!(
-                    "SELECT email FROM unverified_emails
+            let Some(unverified_email) =
+                db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
+                    Ok(sqlx::query!(
+                        "SELECT email FROM unverified_emails
                         WHERE token_hash = $1 AND user_id IS NULL",
-                    token_hash.as_ref(),
-                )
-                .fetch_optional(tx.as_mut())
-                .await?)
-            })
-            .await?
+                        token_hash.as_ref(),
+                    )
+                    .fetch_optional(tx.as_mut())
+                    .await?)
+                })
+                .await?
             else {
                 return Err(api::Error::ResourceNotFound);
             };
@@ -70,17 +74,19 @@ pub async fn get(Query(query): Query<GetQuery>) -> Response<GetResponse> {
         }
 
         GetQuery::EmailAndCode { email, code } => {
-            let Some(unverified_email) = db::transaction!(async |tx| -> TxResult<_, api::Error> {
-                Ok(sqlx::query!(
-                    r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
+            let Some(unverified_email) =
+                db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
+                    Ok(sqlx::query!(
+                        r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
                         WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
-                    email.as_str(),
-                )
-                .fetch_optional(tx.as_mut())
-                .await?)
-            })
-            .await?
-            .filter(|unverified_email| verify_hash(&code, &unverified_email.code_hash)) else {
+                        email.as_str(),
+                    )
+                    .fetch_optional(tx.as_mut())
+                    .await?)
+                })
+                .await?
+                .filter(|unverified_email| verify_hash(&code, &unverified_email.code_hash))
+            else {
                 return Err(api::Error::ResourceNotFound);
             };
 
@@ -116,13 +122,16 @@ pub struct PostRequest {
 ///
 /// See [`crate::api::Error`].
 #[debug_handler]
-pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
+pub async fn post(
+    State(state): State<AppState>,
+    Json(body): Json<PostRequest>,
+) -> Response<PostResponse> {
     // We don't want bots creating accounts or spamming people with verification emails.
     if !captcha::verify(&body.captcha_token).await? {
         return Err(api::Error::CaptchaFailed);
     }
 
-    db::transaction!(async |tx| -> TxResult<_, api::Error> {
+    db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
         let existing_user = sqlx::query!(
             "SELECT name FROM users
                 WHERE email = $1",
