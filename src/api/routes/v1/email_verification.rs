@@ -59,7 +59,7 @@ pub async fn get(
                 db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
                     Ok(sqlx::query!(
                         "SELECT email FROM unverified_emails
-                        WHERE token_hash = $1 AND user_id IS NULL",
+                            WHERE token_hash = $1 AND user_id IS NULL",
                         token_hash.as_ref(),
                     )
                     .fetch_optional(tx.as_mut())
@@ -78,7 +78,7 @@ pub async fn get(
                 db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
                     Ok(sqlx::query!(
                         r#"SELECT email, code_hash as "code_hash!" FROM unverified_emails
-                        WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
+                            WHERE user_id IS NULL AND email = $1 AND code_hash IS NOT NULL"#,
                         email.as_str(),
                     )
                     .fetch_optional(tx.as_mut())

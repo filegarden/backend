@@ -45,8 +45,8 @@ pub async fn get(
         db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
             Ok(sqlx::query!(
                 "SELECT users.email
-                FROM password_resets JOIN users ON users.id = password_resets.user_id
-                WHERE password_resets.token_hash = $1",
+                    FROM password_resets JOIN users ON users.id = password_resets.user_id
+                    WHERE password_resets.token_hash = $1",
                 token_hash.as_ref(),
             )
             .fetch_optional(tx.as_mut())
