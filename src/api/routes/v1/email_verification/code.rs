@@ -39,9 +39,9 @@ pub async fn post(
         db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
             Ok(sqlx::query!(
                 "UPDATE unverified_emails
-                SET code_hash = $1
-                WHERE token_hash = $2 AND user_id IS NULL
-                RETURNING email",
+                    SET code_hash = $1
+                    WHERE token_hash = $2 AND user_id IS NULL
+                    RETURNING email",
                 code_hash,
                 token_hash.as_ref(),
             )
