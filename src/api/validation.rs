@@ -1,10 +1,11 @@
 //! Utilities to help with API request validation.
 
-use std::str::FromStr;
+use std::{borrow::Cow, str::FromStr};
 
 use derive_more::derive::{AsRef, Deref, Display};
 use idna::uts46::{self, Uts46};
 use lettre::Address;
+use regex_macro::regex;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use thiserror::Error;
@@ -154,11 +155,47 @@ impl FromStr for UserEmail {
             return Err(UserEmailError::Invalid);
         }
 
-        let Ok(address) = Address::new(user, domain.to_lowercase()) else {
+        let user = normalize_email_address_user(user);
+        let domain = domain.to_lowercase();
+
+        let Ok(address) = Address::new(user, domain) else {
             return Err(UserEmailError::Invalid);
         };
 
         Ok(Self(address))
+    }
+}
+
+/// Normalizes an email address's user portion by removing unnecessary quotes and escapes.
+fn normalize_email_address_user(user: &str) -> Cow<str> {
+    let Some(unquoted_user) = user
+        .strip_prefix('"')
+        .and_then(|user| user.strip_suffix('"'))
+    else {
+        return Cow::Borrowed(user);
+    };
+
+    // Remove unnecessary escapes. Only double-quotes and backslashes need to be escaped as per RFC
+    // 5321 (section 4.1.2).
+    let unquoted_user = regex!(r#"(\\["\\])|\\"#).replace_all(unquoted_user, "$1");
+
+    // Remove unnecessary quotes.
+    if unquoted_user.chars().all(|char| {
+        matches!(
+            char,
+            // All characters a user portion can have unquoted as per RFC 6531 (section 3.3).
+            '.' | 'A'..='Z' | 'a'..='z' | '0'..='9' | '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+'
+                | '-' | '/' | '=' | '?' | '^' | '_' | '`' | '{' | '|' | '}' | '~' | '\u{0080}'..,
+        )
+    }) {
+        return unquoted_user;
+    }
+
+    // The quotes are necessary, so re-quote it.
+    if *unquoted_user == user[1..user.len() - 1] {
+        Cow::Borrowed(user)
+    } else {
+        Cow::Owned(format!("\"{unquoted_user}\""))
     }
 }
 
@@ -172,12 +209,36 @@ mod tests {
         let invalid_emails = [
             "invalid",
             "invalid@invalid@example.com",
-            "invalid user@example.com",
             "user@example-.com",
             "user@[127.0.0.1]",
             "user@[::1]",
             "more-than-64-characters-in-the-local-part-is-toooooooooooooo-long@example.com",
             "more-than-254-characters-total-is-tooo-long@example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.example.com",
+            "user with spaces@example.com",
+            "\"\"@example.com",
+            "\"user-with\nline-break\"@example.com",
+            "\"user-with-unbalanced\"quotes\"@example.com",
+            "user-with\\backslash@example.com",
+            "user-with-unquoted-escaped\\ special-character@example.com",
+
+            // While technically allowed by RFC 5322, the below forms aren't allowed by RFC 5321 and
+            // aren't required by any standards-compliant mail server, so there's no reason to allow
+            // them. Users submitting these are most likely trying to break things.
+            "\"user\".\"name\"@example.com",
+            " user.name@example.com",
+            "user .name@example.com",
+            "user. name@example.com",
+            "user.name @example.com",
+            "user.name@ example.com",
+            "user.name@example .com",
+            "user.name@example. com",
+            "user.name@example.com ",
+            "(comment)user@example.com",
+            "user(comment)@example.com",
+            "user@(comment)example.com",
+            "user@example(comment).com",
+            "user@example.(comment)com",
+            "user@example.com(comment)",
         ];
 
         for email in invalid_emails {
@@ -192,6 +253,10 @@ mod tests {
         let valid_emails = [
             "user-of-a-mail-server-on-a-tld@com",
             "64-characters-in-the-local-part-is-fiiiiiiiiiiiiiiiiiiiiiiiiiine@example.com",
+            "\"unnecessarily.quoted.user\"@example.com",
+            "\"quoted user with unnecessary \\escapes\"@example.com",
+            "\"quoted user with unnecessary\\ escapes on special characters\"@example.com",
+            "\"quoted user with spaces and \\\" escapes\"@example.com",
         ];
 
         for email in valid_emails {
@@ -201,23 +266,46 @@ mod tests {
         }
     }
 
+    /// Ensures users can't sign up multiple times with different forms of the same email.
     #[test]
     fn user_email_normalization() -> anyhow::Result<()> {
         // The user portion isn't all lowercase or all uppercase when normalized because RFC 5321
         // (section 2.3.11) lets mail servers treat the user portion case-sensitively.
-        let normalized_email = "uSeR@examplé.com";
+        let normalized_email = "USER.name@examplé.com";
 
         let equivalent_emails = [
-            "uSeR@examplé.com",
-            "uSeR@example\u{0301}.com",
-            "uSeR@EXAMPLÉ.COM",
-            "uSeR@EXAMPLE\u{0301}.COM",
-            "uSeR@xn--exampl-gva.com",
-            "uSeR@xN--eXaMpL-gVa.CoM",
+            normalized_email,
+            "USER.name@example\u{0301}.com",
+            "USER.name@EXAMPLÉ.COM",
+            "USER.name@EXAMPLE\u{0301}.COM",
+            "USER.name@xn--exampl-gva.com",
+            "USER.name@xN--eXaMpL-gVa.CoM",
+            r#""USER.name"@examplé.com"#,
+            r#""\USER\.name"@examplé.com"#,
         ];
 
         for email in equivalent_emails {
-            assert_eq!(normalized_email, email.parse::<UserEmail>()?.as_str());
+            assert_eq!(
+                normalized_email,
+                email.parse::<UserEmail>()?.as_str(),
+                "normalizing {email:?}",
+            );
+        }
+
+        let normalized_email = r#""a \\\" b\\."@example.com"#;
+
+        let equivalent_emails = [
+            normalized_email,
+            r#""\a \\\" b\\."@example.com"#,
+            r#""\a\ \\\" b\\\."@example.com"#,
+        ];
+
+        for email in equivalent_emails {
+            assert_eq!(
+                normalized_email,
+                email.parse::<UserEmail>()?.as_str(),
+                "normalizing {email:?}",
+            );
         }
 
         Ok(())
