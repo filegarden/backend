@@ -76,16 +76,16 @@ pub(crate) type TxResult<T, E> = Result<T, TxError<E>>;
 /// Maximum isolation is used to minimize the possibility of data races. This generally greatly
 /// simplifies database operations and reduces the mental overhead of working with them.
 macro_rules! transaction {
-    ($db_pool:expr, $($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block) => {
+    ($db_pool:expr, $($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block$(,)?) => {
         $crate::db::transaction!(
             $db_pool,
             $($ident)* |$tx: &mut ::sqlx::Transaction<'static, ::sqlx::Postgres>| $(-> $Return)? {
                 $block
-            }
+            },
         )
     };
 
-    ($db_pool:expr, $callback:expr) => {
+    ($db_pool:expr, $callback:expr$(,)?) => {
         async {
             #[expect(clippy::allow_attributes, reason = "`unused_mut` isn't always expected")]
             #[allow(unused_mut, reason = "some callers need this to be `mut`")]
