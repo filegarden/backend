@@ -150,6 +150,7 @@ pub async fn post(
             return Ok(());
         }
 
+        // Expire any previous email verification request.
         sqlx::query!(
             "DELETE FROM unverified_emails
                 WHERE user_id IS NULL AND email = $1",

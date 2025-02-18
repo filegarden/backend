@@ -118,6 +118,7 @@ pub async fn post(
             return Ok(());
         };
 
+        // Expire any previous password reset request.
         sqlx::query!(
             "DELETE FROM password_resets
                 WHERE user_id = $1",
