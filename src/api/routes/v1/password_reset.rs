@@ -111,6 +111,7 @@ pub async fn post(Json(body): Json<PostRequest>) -> Response<PostResponse> {
             return Ok(());
         };
 
+        // Expire any previous password reset request.
         sqlx::query!(
             "DELETE FROM password_resets
                 WHERE user_id = $1",
