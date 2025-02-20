@@ -36,6 +36,10 @@ tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 tower-cookies = { version = "0.10" }
 
+[dev-dependencies]
+maik = "0.1"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+
 [lints]
 # Last updated for Clippy version: 1.83
 
@@ -172,7 +176,7 @@ clippy.unnecessary_safety_doc = "warn"
 clippy.unnecessary_self_imports = "warn"
 clippy.unreachable = "warn"
 clippy.unused_rounding = "warn"
-rust.unused_crate_dependencies = "warn"
+rust.unused_crate_dependencies = "allow"
 rustdoc.unescaped_backticks = "warn"
 
 # Helps accuracy and precision.
