@@ -79,7 +79,7 @@ macro_rules! transaction {
     ($db_pool:expr, $($ident:ident)* |$tx:ident| $(-> $Return:ty)? $block:block$(,)?) => {
         $crate::db::transaction!(
             $db_pool,
-            $($ident)* |$tx: &mut ::sqlx::Transaction<'static, ::sqlx::Postgres>| $(-> $Return)? {
+            $($ident)* |$tx: &mut ::sqlx::PgTransaction<'static>| $(-> $Return)? {
                 $block
             },
         )
