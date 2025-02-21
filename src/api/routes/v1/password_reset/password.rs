@@ -41,7 +41,7 @@ pub async fn post(
 ) -> Response<PostResponse> {
     let token_hash = hash_without_salt(&query.token);
 
-    let password_hash = hash_with_salt(&body.password)?;
+    let password_hash = hash_with_salt(&body.password);
 
     db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
         let Some(password_reset) = sqlx::query!(

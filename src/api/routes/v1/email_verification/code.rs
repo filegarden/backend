@@ -33,7 +33,7 @@ pub async fn post(
     let token_hash = hash_without_salt(&query.token);
 
     let code = generate_short_code();
-    let code_hash = hash_with_salt(&code)?;
+    let code_hash = hash_with_salt(&code);
 
     let Some(unverified_email) =
         db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {

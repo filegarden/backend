@@ -141,12 +141,6 @@ impl From<sqlx::Error> for Error {
     }
 }
 
-impl From<rand::Error> for Error {
-    fn from(error: rand::Error) -> Self {
-        Self::Internal(error.into())
-    }
-}
-
 impl From<reqwest::Error> for Error {
     fn from(error: reqwest::Error) -> Self {
         Self::Internal(error.into())

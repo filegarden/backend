@@ -39,27 +39,18 @@ pub struct Id<T = Vec<u8>>(T);
 
 impl<const N: usize> Id<[u8; N]> {
     /// Generates a cryptographically secure pseudorandom ID.
-    ///
-    /// # Errors
-    ///
-    /// Fails if the CSPRNG fails to obtain random bytes.
-    pub fn generate() -> Result<Self, rand::Error> {
+    pub fn generate() -> Self {
         let mut id = Self([0; N]);
-        id.reroll()?;
-        Ok(id)
+        id.reroll();
+        id
     }
 }
 
 impl<T: AsMut<[u8]>> Id<T> {
     /// Overwrites this ID with a new cryptographically secure pseudorandom ID, reusing the existing
     /// memory.
-    ///
-    /// # Errors
-    ///
-    /// Fails if the CSPRNG fails to obtain random bytes.
-    pub fn reroll(&mut self) -> Result<(), rand::Error> {
-        rand::thread_rng().try_fill_bytes(self.as_mut())?;
-        Ok(())
+    pub fn reroll(&mut self) {
+        rand::rng().fill_bytes(self.as_mut());
     }
 }
 

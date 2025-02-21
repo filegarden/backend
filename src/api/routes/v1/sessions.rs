@@ -65,7 +65,7 @@ pub async fn post(
             return Err(db::TxError::Abort(api::Error::UserCredentialsWrong));
         };
 
-        let mut token = Token::generate()?;
+        let mut token = Token::generate();
 
         loop {
             // If this loop's query fails from a token conflict, this savepoint is rolled back to
@@ -86,7 +86,7 @@ pub async fn post(
                 Err(sqlx::Error::Database(error))
                     if error.constraint() == Some("sessions_pkey") =>
                 {
-                    token.reroll()?;
+                    token.reroll();
                     continue;
                 }
                 result => result?,

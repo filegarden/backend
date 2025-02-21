@@ -44,9 +44,9 @@ pub async fn post(
     State(state): State<AppState>,
     Json(body): Json<PostRequest>,
 ) -> Response<PostResponse> {
-    let mut user_id = NewUserId::generate()?;
+    let mut user_id = NewUserId::generate();
 
-    let password_hash = hash_with_salt(&body.password)?;
+    let password_hash = hash_with_salt(&body.password);
 
     db::transaction!(state.db_pool, async |tx| -> TxResult<_, api::Error> {
         let does_code_match = sqlx::query!(
@@ -81,7 +81,7 @@ pub async fn post(
             .await
             {
                 Err(sqlx::Error::Database(error)) if error.constraint() == Some("users_pkey") => {
-                    user_id.reroll()?;
+                    user_id.reroll();
                     continue;
                 }
                 result => result?,

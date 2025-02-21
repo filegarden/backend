@@ -4,7 +4,10 @@ use argon2::{
     password_hash::{Salt, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
-use rand::{distributions::Uniform, prelude::Distribution, RngCore};
+use rand::{
+    distr::{Distribution, Uniform},
+    RngCore,
+};
 use ring::digest::{digest, Digest, SHA256};
 
 /// Hashes the input using SHA-256.
@@ -20,20 +23,16 @@ pub(crate) fn hash_without_salt<T: AsRef<[u8]>>(bytes: &T) -> Digest {
 /// Salt is necessary for secrets that may be short or guessable, but it has a drawback: a database
 /// can't index salted hashes, since salting and hashing the same input produces a different output
 /// each time. If the input can't be a short or guessable secret, use [`hash_without_salt`] instead.
-///
-/// # Errors
-///
-/// Fails if the CSPRNG fails when generating salt.
-pub(crate) fn hash_with_salt<T: AsRef<[u8]>>(bytes: &T) -> Result<String, rand::Error> {
+pub(crate) fn hash_with_salt<T: AsRef<[u8]>>(bytes: &T) -> String {
     let mut salt = [0; Salt::RECOMMENDED_LENGTH];
-    rand::thread_rng().try_fill_bytes(&mut salt)?;
+    rand::rng().fill_bytes(&mut salt);
 
     let salt_string = SaltString::encode_b64(&salt).expect("salt should be valid");
 
-    Ok(Argon2::default()
+    Argon2::default()
         .hash_password(bytes.as_ref(), &salt_string)
         .expect("password hashing should be infallible")
-        .to_string())
+        .to_string()
 }
 
 /// Checks if the input bytes match the Argon2 hash specified in PHC string format (as outputted by
@@ -63,8 +62,9 @@ const SHORT_CODE_LENGTH: usize = 6;
 
 /// Generates a cryptographically secure pseudorandom string that's short and easy to type.
 pub(crate) fn generate_short_code() -> String {
-    Uniform::from(0..SHORT_CODE_CHARS.len())
-        .sample_iter(rand::thread_rng())
+    Uniform::try_from(0..SHORT_CODE_CHARS.len())
+        .expect("`SHORT_CODE_CHARS` should be nonempty and finite")
+        .sample_iter(rand::rng())
         .take(SHORT_CODE_LENGTH)
         .map(|i| SHORT_CODE_CHARS[i])
         .collect()
